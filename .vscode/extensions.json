@@ -1,0 +1,9 @@
+{
+  "recommendations": [
+    "fwcd.kotlin",
+    "vscjava.vscode-gradle",
+    "redhat.java",
+    "vscjava.vscode-java-debug",
+    "dotjoshjohnson.xml"
+  ]
+}

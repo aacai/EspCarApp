@@ -1,0 +1,18 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Attach to Desktop (5005)",
+      "type": "java+",
+      "request": "attach",
+      "hostName": "localhost",
+      "port": 5005,
+      "projectName": "desktopApp",
+      "sourcePaths": [
+        "${workspaceFolder}/shared/src/commonMain/kotlin",
+        "${workspaceFolder}/shared/src/jvmMain/kotlin",
+        "${workspaceFolder}/desktopApp/src/main/kotlin"
+      ]
+    }
+  ]
+}

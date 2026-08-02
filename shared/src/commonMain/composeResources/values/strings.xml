@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="scan_topbar_title">Connect to Car</string>
+    <string name="scanning">Searching for nearby cars…</string>
+    <string name="scan_auto_stopped">Scan stopped automatically to save battery</string>
+    <string name="scan_paused">Scan paused</string>
+    <string name="scan_count">Found %1$d device(s)</string>
+    <string name="no_devices">No devices found</string>
+    <string name="no_devices_hint">Make sure the car is powered on and nearby, then tap the scan button at the top right.</string>
+    <string name="unknown_device">(Unknown device)</string>
+    <string name="device_id">ID: %1$s</string>
+    <string name="connect">Connect</string>
+
+    <string name="control_topbar_title">Remote Control</string>
+    <string name="debug">Debug</string>
+    <string name="disconnect">Disconnect</string>
+    <string name="connected">Connected</string>
+    <string name="connecting">Connecting…</string>
+    <string name="disconnected">Disconnected</string>
+    <string name="speed_label">Speed</string>
+    <string name="emergency_stop">Emergency Stop</string>
+    <string name="fetching_status">Fetching car status…</string>
+    <string name="debug_log_title">Debug log (tap the Debug button at top-right to close)</string>
+    <string name="no_log">No logs yet. They will appear after connecting.</string>
+
+    <string name="bluetooth_unavailable">Bluetooth Unavailable</string>
+    <string name="bluetooth_unavailable_hint">This device has not granted Bluetooth permission or the hardware is unavailable, so it cannot scan for or connect to the car. Please enable Bluetooth in system settings and try again.</string>
+
+    <string name="status_title">Car Status</string>
+    <string name="label_action">Action</string>
+    <string name="label_speed">Speed</string>
+    <string name="label_commands">Commands</string>
+    <string name="label_uptime">Uptime</string>
+    <string name="label_free_heap">Free Heap</string>
+    <string name="label_ble">BLE</string>
+    <string name="label_wifi">WiFi</string>
+    <string name="label_ip">IP</string>
+    <string name="status_online">Online</string>
+    <string name="status_offline">Offline</string>
+
+    <string name="lang_system">Auto</string>
+    <string name="lang_zh">中文</string>
+    <string name="lang_en">EN</string>
+    <string name="language_toggle">Language</string>
+    <string name="theme_toggle">Theme</string>
+</resources>

@@ -1,0 +1,68 @@
+{
+  // ===== 运行环境 =====
+  // 让 VS Code 集成终端 / 任务（./gradlew）使用正确的 JDK，
+  // 避免继承到 ServBay 自动生成的坏 JAVA_HOME（current.sdk 断链）。
+  // 仅作用于 VS Code 内部，不修改系统环境变量 / shell 配置。
+  "terminal.integrated.env.osx": {
+    "JAVA_HOME": "/Applications/Android Studio.app/Contents/jbr/Contents/Home"
+  },
+  // Gradle 扩展使用的 JDK（需 JDK 17+，AGP 9.1.1 / Kotlin 2.4.0 要求）
+  "gradle.java.home": "/opt/homebrew/opt/openjdk@17",
+  "gradle.reuseTerminal": true,
+  "gradle.focusTaskInExplorer": true,
+
+  // ===== Kotlin 语言服务器（FWCD）=====
+  "kotlin.languageServer.enabled": true,
+  "kotlin.languageServer.script.compiler.jvm.target": "17",
+  "kotlin.languageServer.java.home": "/opt/homebrew/opt/openjdk@17",
+  "kotlin.trace.server": "off",
+  "kotlin.compiler.jvm.target": "17",
+  // 关闭诊断（红色波浪线）以屏蔽 FWCD 对 androidx 等 Android 依赖的「假红」。
+  // 注意：设为 false 后真实报错也不再标红，请以 Gradle 构建（./gradlew）为准。
+  // 想恢复红色错误提示时，把这行改成 true 即可。
+  "kotlin.diagnostics.enabled": false,
+  // 保留全局符号索引，确保「跳转到定义 / 补全 / 悬停」仍然可用（与诊断相互独立）。
+  "kotlin.indexing.enabled": true,
+  "[kotlin]": {
+    "editor.defaultFormatter": "fwcd.kotlin",
+    "editor.formatOnSave": true,
+    "editor.tabSize": 4,
+    "editor.insertSpaces": true
+  },
+
+  // ===== Java 语言支持（供 Gradle 扩展 / 调试使用，不导入为 Java 工程）=====
+  "java.import.exclusions": [
+    "**/build",
+    "**/shared",
+    "**/androidApp",
+    "**/desktopApp"
+  ],
+  "java.configuration.updateBuildConfiguration": "automatic",
+  "java.server.launchMode": "Standard",
+
+  // ===== 性能 / 噪音控制（避免监听大量 build 产物）=====
+  "files.watcherExclude": {
+    "**/build/**": true,
+    "**/.gradle/**": true,
+    "**/.gradle-user-home/**": true,
+    "**/.kotlin/**": true,
+    "**/androidApp/build/**": true,
+    "**/desktopApp/build/**": true,
+    "**/shared/build/**": true
+  },
+  "search.exclude": {
+    "**/build": true,
+    "**/.gradle": true,
+    "**/.gradle-user-home": true,
+    "**/.kotlin": true
+  },
+  "files.exclude": {
+    "**/build": true,
+    "**/.gradle": true,
+    "**/.gradle-user-home": true
+  },
+
+  // 文件保存时只格式化 Kotlin，避免误触
+  "files.trimTrailingWhitespace": true,
+  "files.insertFinalNewline": true
+}

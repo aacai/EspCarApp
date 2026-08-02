@@ -1,0 +1,13 @@
+package zhiqiu.car.app
+
+import platform.UIKit.UIDevice
+
+class IOSPlatform: Platform {
+    override val name: String = UIDevice.currentDevice.systemName() + " " + UIDevice.currentDevice.systemVersion
+}
+
+actual fun getPlatform(): Platform = IOSPlatform()
+
+internal actual fun platformLog(tag: String, message: String) {
+    println("[$tag] $message")
+}

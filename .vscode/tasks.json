@@ -1,0 +1,165 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Desktop: Run",
+      "type": "shell",
+      "command": "JAVA_HOME=\"/Applications/Android Studio.app/Contents/jbr/Contents/Home\" ./gradlew :desktopApp:run",
+      "group": {
+        "kind": "build",
+        "isDefault": true
+      },
+      "problemMatcher": [],
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": true,
+        "panel": "dedicated",
+        "clear": false
+      }
+    },
+    {
+      "label": "Desktop: Hot Run (auto reload)",
+      "type": "shell",
+      "command": "JAVA_HOME=\"/Applications/Android Studio.app/Contents/jbr/Contents/Home\" ./gradlew :desktopApp:hotRun --auto",
+      "problemMatcher": [],
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": true,
+        "panel": "dedicated",
+        "clear": false
+      }
+    },
+    {
+      "label": "Desktop: Run (Debug @5005)",
+      "type": "shell",
+      "command": "JAVA_HOME=\"/Applications/Android Studio.app/Contents/jbr/Contents/Home\" ./gradlew :desktopApp:run -PdebugJvm=true",
+      "problemMatcher": [],
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": true,
+        "panel": "dedicated",
+        "clear": false
+      }
+    },
+    {
+      "label": "Android: Assemble Debug APK",
+      "type": "shell",
+      "command": "JAVA_HOME=\"/Applications/Android Studio.app/Contents/jbr/Contents/Home\" ./gradlew :androidApp:assembleDebug",
+      "problemMatcher": ["$gradle"],
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": true,
+        "panel": "dedicated",
+        "clear": false
+      }
+    },
+    {
+      "label": "Android: Assemble Release APK",
+      "type": "shell",
+      "command": "JAVA_HOME=\"/Applications/Android Studio.app/Contents/jbr/Contents/Home\" ./gradlew :androidApp:assembleRelease",
+      "problemMatcher": ["$gradle"],
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": true,
+        "panel": "dedicated",
+        "clear": false
+      }
+    },
+    {
+      "label": "Android: Install Debug to Device",
+      "type": "shell",
+      "command": "JAVA_HOME="/Applications/Android Studio.app/Contents/jbr/Contents/Home" ./gradlew :androidApp:assembleDebug && APK=$(find androidApp/build/outputs/apk/debug -maxdepth 1 -name '*.apk' 2>/dev/null | head -n1) && { [ -n \"$APK\" ] || { echo \"!! 未找到 APK，构建可能失败\"; exit 1; }; } && SEEN=\"\" && adb devices | tail -n +2 | while IFS= read -r line; do d=$(echo \"$line\" | tr -s ' \t' '\t' | cut -f1); st=$(echo \"$line\" | tr -s ' \t' '\t' | cut -f2); [ -z \"$d\" ] && continue; [ \"$st\" = \"device\" ] || { echo \"!! 跳过 $d (状态=$st，连接未授权/离线)\"; continue; }; case \";$SEEN;\" in *\";$d;\"*) echo \".. 跳过 $d (重复连接)\"; continue;; esac; SEEN=\"$SEEN;$d\"; echo \"==> 安装到 $d\"; adb -s \"$d\" install -r \"$APK\" < /dev/null || echo \"!! 安装失败 $d（签名冲突请改用 Reinstall 任务）\"; done",
+      "problemMatcher": ["$gradle"],
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": true,
+        "panel": "dedicated",
+        "clear": false
+      }
+    },
+    {
+      "label": "Android: Uninstall from all devices",
+      "type": "shell",
+      "command": "SEEN=\"\" && adb devices | tail -n +2 | while IFS= read -r line; do d=$(echo \"$line\" | tr -s ' \t' '\t' | cut -f1); st=$(echo \"$line\" | tr -s ' \t' '\t' | cut -f2); [ -z \"$d\" ] && continue; [ \"$st\" = \"device\" ] || { echo \"!! 跳过 $d (状态=$st)\"; continue; }; case \";$SEEN;\" in *\";$d;\"*) continue;; esac; SEEN=\"$SEEN;$d\"; echo \"==> 卸载 $d\"; adb -s \"$d\" uninstall zhiqiu.car.app < /dev/null || echo \"!! 卸载失败 $d\"; done",
+      "problemMatcher": [],
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": true,
+        "panel": "dedicated",
+        "clear": false
+      }
+    },
+    {
+      "label": "Android: Reinstall & Launch (all devices)",
+      "type": "shell",
+      "command": "SEEN=\"\" && adb devices | tail -n +2 | while IFS= read -r line; do d=$(echo \"$line\" | tr -s ' \t' '\t' | cut -f1); st=$(echo \"$line\" | tr -s ' \t' '\t' | cut -f2); [ -z \"$d\" ] && continue; [ \"$st\" = \"device\" ] || { echo \"!! 跳过 $d (状态=$st)\"; continue; }; case \";$SEEN;\" in *\";$d;\"*) continue;; esac; SEEN=\"$SEEN;$d\"; echo \"==> 卸载 $d\"; adb -s \"$d\" uninstall zhiqiu.car.app < /dev/null || true; done && JAVA_HOME="/Applications/Android Studio.app/Contents/jbr/Contents/Home" ./gradlew :androidApp:assembleDebug && APK=$(find androidApp/build/outputs/apk/debug -maxdepth 1 -name '*.apk' 2>/dev/null | head -n1) && { [ -n \"$APK\" ] || { echo \"!! 未找到 APK\"; exit 1; }; } && SEEN=\"\" && adb devices | tail -n +2 | while IFS= read -r line; do d=$(echo \"$line\" | tr -s ' \t' '\t' | cut -f1); st=$(echo \"$line\" | tr -s ' \t' '\t' | cut -f2); [ -z \"$d\" ] && continue; [ \"$st\" = \"device\" ] || { echo \"!! 跳过 $d (状态=$st)\"; continue; }; case \";$SEEN;\" in *\";$d;\"*) echo \".. 跳过 $d (重复连接)\"; continue;; esac; SEEN=\"$SEEN;$d\"; echo \"==> 安装并启动 $d\"; adb -s \"$d\" install -r \"$APK\" < /dev/null && adb -s \"$d\" shell am start -n zhiqiu.car.app/.MainActivity < /dev/null || echo \"!! 安装失败 $d\"; done",
+      "problemMatcher": ["$gradle"],
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": true,
+        "panel": "dedicated",
+        "clear": false
+      }
+    },
+    {
+      "label": "Android: Install & Launch Debug (all devices)",
+      "type": "shell",
+      "command": "JAVA_HOME="/Applications/Android Studio.app/Contents/jbr/Contents/Home" ./gradlew :androidApp:assembleDebug && APK=$(find androidApp/build/outputs/apk/debug -maxdepth 1 -name '*.apk' 2>/dev/null | head -n1) && { [ -n \"$APK\" ] || { echo \"!! 未找到 APK\"; exit 1; }; } && SEEN=\"\" && adb devices | tail -n +2 | while IFS= read -r line; do d=$(echo \"$line\" | tr -s ' \t' '\t' | cut -f1); st=$(echo \"$line\" | tr -s ' \t' '\t' | cut -f2); [ -z \"$d\" ] && continue; [ \"$st\" = \"device\" ] || { echo \"!! 跳过 $d (状态=$st)\"; continue; }; case \";$SEEN;\" in *\";$d;\"*) echo \".. 跳过 $d (重复连接)\"; continue;; esac; SEEN=\"$SEEN;$d\"; echo \"==> 安装并启动 $d\"; adb -s \"$d\" install -r \"$APK\" < /dev/null && adb -s \"$d\" shell am start -n zhiqiu.car.app/.MainActivity < /dev/null || echo \"!! 失败 $d（签名冲突请改用 Reinstall 任务）\"; done",
+      "problemMatcher": ["$gradle"],
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": true,
+        "panel": "dedicated",
+        "clear": false
+      }
+    },
+    {
+      "label": "Android: Launch App on all devices (adb)",
+      "type": "shell",
+      "command": "SEEN=\"\" && adb devices | tail -n +2 | while IFS= read -r line; do d=$(echo \"$line\" | tr -s ' \t' '\t' | cut -f1); st=$(echo \"$line\" | tr -s ' \t' '\t' | cut -f2); [ -z \"$d\" ] && continue; [ \"$st\" = \"device\" ] || { echo \"!! 跳过 $d (状态=$st)\"; continue; }; case \";$SEEN;\" in *\";$d;\"*) echo \".. 跳过 $d (重复连接)\"; continue;; esac; SEEN=\"$SEEN;$d\"; echo \"==> 启动 $d\"; adb -s \"$d\" shell am start -n zhiqiu.car.app/.MainActivity < /dev/null; done",
+      "problemMatcher": [],
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": false,
+        "panel": "dedicated",
+        "clear": false
+      }
+    },
+    {
+      "label": "Build shared (JVM + Android)",
+      "type": "shell",
+      "command": "JAVA_HOME=\"/Applications/Android Studio.app/Contents/jbr/Contents/Home\" ./gradlew :shared:compileKotlinJvm :shared:compileKotlinAndroid",
+      "problemMatcher": ["$gradle"],
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": false,
+        "panel": "dedicated",
+        "clear": false
+      }
+    },
+    {
+      "label": "Clean",
+      "type": "shell",
+      "command": "JAVA_HOME=\"/Applications/Android Studio.app/Contents/jbr/Contents/Home\" ./gradlew clean",
+      "problemMatcher": ["$gradle"],
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": false,
+        "panel": "dedicated",
+        "clear": false
+      }
+    }
+  ]
+}

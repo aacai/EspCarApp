@@ -1,0 +1,295 @@
+package zhiqiu.car.app.ui
+
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Slider
+import androidx.compose.material3.SliderDefaults
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.unit.dp
+import kotlinx.coroutines.launch
+import zhiqiu.car.app.ble.CarController
+import zhiqiu.car.app.ble.ConnectionState
+import zhiqiu.car.app.SettingsRepository
+import zhiqiu.car.app.ui.components.TopBarToggles
+import zhiqiu.car.app.ui.components.DirectionalPad
+import zhiqiu.car.app.ui.components.StatusPanel
+import zhiqiu.car.app.ui.theme.AccentAmber
+import zhiqiu.car.app.ui.theme.AccentCyan
+import zhiqiu.car.app.ui.theme.GradientButton
+import zhiqiu.car.app.ui.theme.AccentGreen
+import zhiqiu.car.app.ui.theme.AccentRed
+import zhiqiu.car.app.ui.theme.DangerGradient
+import zhiqiu.car.app.ui.components.CarGlyph
+import zhiqiu.car.app.ui.theme.HeroGradient
+import espcarclient.shared.generated.resources.*
+import org.jetbrains.compose.resources.stringResource
+
+/**
+ * 控制页：连接状态胶囊 + 方向盘 + 速度调节 + 实时状态面板 + 断开连接。
+ * 安全兜底（松手即停、看门狗、断连复位）已在 [CarController] 内部实现。
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun ControlScreen(controller: CarController, settings: SettingsRepository) {
+    val status by controller.status.collectAsState()
+    val statusError by controller.statusError.collectAsState()
+    val currentDirection by controller.currentDirection.collectAsState()
+    val connection by controller.connectionState.collectAsState()
+    val error by controller.error.collectAsState()
+    val logLines by controller.logLines.collectAsState()
+    val scope = rememberCoroutineScope()
+
+    var speed by remember { mutableStateOf(60) }
+    var showLog by remember { mutableStateOf(false) }
+
+    Scaffold(
+        topBar = {
+            Box(modifier = Modifier.background(HeroGradient)) {
+                TopAppBar(
+                    colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent),
+                    title = {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Box(
+                                modifier = Modifier
+                                    .size(34.dp)
+                                    .clip(CircleShape)
+                                    .background(Color.White.copy(alpha = 0.18f)),
+                                contentAlignment = Alignment.Center,
+                            ) {
+                                CarGlyph(tint = Color.White)
+                            }
+                            Text(
+                                stringResource(Res.string.control_topbar_title),
+                                modifier = Modifier.padding(start = 10.dp),
+                                color = Color.White,
+                                style = MaterialTheme.typography.titleLarge,
+                            )
+                        }
+                    },
+                    actions = {
+                        TopBarToggles(settings)
+                        TextButton(onClick = { showLog = !showLog }) {
+                            Text(stringResource(Res.string.debug), color = AccentCyan)
+                        }
+                        ConnectionChip(connection)
+                        TextButton(
+                            onClick = { scope.launch { controller.disconnect() } },
+                            modifier = Modifier.padding(end = 8.dp),
+                        ) {
+                            Text(stringResource(Res.string.disconnect), color = AccentRed)
+                        }
+                    },
+                )
+            }
+        },
+    ) { padding ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(padding)
+                .padding(16.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(16.dp),
+        ) {
+            if (error != null) {
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(16.dp),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.error.copy(alpha = 0.12f)),
+                ) {
+                    Text(
+                        text = error ?: "",
+                        modifier = Modifier.padding(14.dp),
+                        color = MaterialTheme.colorScheme.error,
+                        style = MaterialTheme.typography.bodyMedium,
+                    )
+                }
+            }
+
+            DirectionalPad(
+                current = currentDirection,
+                onPress = { controller.pressDirection(it) },
+                onRelease = { controller.releaseDirection() },
+            )
+
+            SpeedCard(
+                speed = speed,
+                onSpeedChange = {
+                    speed = it
+                    controller.setSpeed(it)
+                },
+            )
+
+            GradientButton(
+                text = stringResource(Res.string.emergency_stop),
+                onClick = { scope.launch { controller.emergencyStop() } },
+                brush = DangerGradient,
+                modifier = Modifier.fillMaxWidth(),
+            )
+
+            if (status != null) {
+                StatusPanel(status = status!!)
+                if (statusError != null) {
+                    Text(
+                        statusError!!,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(top = 8.dp),
+                        color = AccentAmber,
+                        style = MaterialTheme.typography.labelSmall,
+                    )
+                }
+            } else {
+                Text(
+                    statusError ?: stringResource(Res.string.fetching_status),
+                    color = if (statusError != null) AccentAmber else MaterialTheme.colorScheme.onSurfaceVariant,
+                    style = MaterialTheme.typography.bodyMedium,
+                )
+            }
+
+            if (showLog) {
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(12.dp),
+                    colors = CardDefaults.cardColors(containerColor = Color.Black.copy(alpha = 0.85f)),
+                ) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(180.dp)
+                            .verticalScroll(rememberScrollState())
+                            .padding(10.dp),
+                    ) {
+                        Text(
+                            stringResource(Res.string.debug_log_title),
+                            color = AccentCyan,
+                            style = MaterialTheme.typography.labelSmall,
+                        )
+                        val text = if (logLines.isEmpty()) stringResource(Res.string.no_log) else logLines.joinToString("\n")
+                        Text(
+                            text = text,
+                            color = Color(0xFF9EFFA0),
+                            style = MaterialTheme.typography.labelSmall,
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+/** 顶栏连接状态胶囊：彩色圆点 + 文字。 */
+@Composable
+private fun ConnectionChip(connection: ConnectionState) {
+    val (color, text) = when (connection) {
+        ConnectionState.Connected -> AccentGreen to stringResource(Res.string.connected)
+        ConnectionState.Connecting -> AccentAmber to stringResource(Res.string.connecting)
+        else -> AccentRed to stringResource(Res.string.disconnected)
+    }
+    Box(
+        modifier = Modifier
+            .padding(end = 8.dp)
+            .clip(CircleShape)
+            .background(color.copy(alpha = 0.15f))
+            .border(1.dp, color.copy(alpha = 0.5f), CircleShape)
+            .padding(horizontal = 12.dp, vertical = 6.dp),
+        contentAlignment = Alignment.Center,
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Box(
+                modifier = Modifier
+                    .size(8.dp)
+                    .clip(CircleShape)
+                    .background(color),
+            )
+            Text(
+                text,
+                modifier = Modifier.padding(start = 6.dp),
+                color = color,
+                style = MaterialTheme.typography.labelSmall,
+            )
+        }
+    }
+}
+
+/** 速度卡片：圆形进度环 + 滑块。 */
+@Composable
+private fun SpeedCard(speed: Int, onSpeedChange: (Int) -> Unit) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(18.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Box(
+                modifier = Modifier.size(64.dp),
+                contentAlignment = Alignment.Center,
+            ) {
+                androidx.compose.material3.CircularProgressIndicator(
+                    progress = { speed / 100f },
+                    modifier = Modifier.size(64.dp),
+                    color = AccentCyan,
+                    trackColor = MaterialTheme.colorScheme.outline,
+                    strokeWidth = 6.dp,
+                )
+                Text("$speed%", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurface)
+            }
+            Column(
+                modifier = Modifier
+                    .weight(1f)
+                    .padding(start = 16.dp),
+            ) {
+                Text(stringResource(Res.string.speed_label), style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.onSurface)
+                Slider(
+                    value = speed.toFloat(),
+                    onValueChange = { onSpeedChange(it.toInt()) },
+                    valueRange = 0f..100f,
+                    steps = 9,
+                    colors = SliderDefaults.colors(
+                        thumbColor = AccentCyan,
+                        activeTrackColor = AccentCyan,
+                        inactiveTrackColor = MaterialTheme.colorScheme.outline,
+                    ),
+                )
+            }
+        }
+    }
+}
