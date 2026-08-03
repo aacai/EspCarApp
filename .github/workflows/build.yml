@@ -74,6 +74,8 @@ jobs:
 
   # ----------------------------------------------------------------
   # Desktop：按运行系统分别产出 deb / msi+exe / dmg
+  # 注意：macOS x86（Intel）runner 已在 GitHub Actions 退役，无法打出 x64 dmg，
+  #       故 macOS 仅保留 arm64（macos-latest，Apple Silicon）。Intel Mac 用户可用 arm64 版经 Rosetta 运行。
   # ----------------------------------------------------------------
   desktop:
     if: github.event_name == 'push' || inputs.build_desktop
@@ -89,9 +91,6 @@ jobs:
             task: packageMsi packageExe
           - os: macos-latest
             arch: arm64
-            task: packageDmg
-          - os: macos-13
-            arch: x64
             task: packageDmg
     runs-on: ${{ matrix.os }}
     steps:
@@ -380,7 +379,7 @@ jobs:
             echo
             echo "## 说明"
             echo "- iOS 真机 IPA 需 Apple 付费开发者账号（\$99/年）并配置仓库 Secrets（IOS_CERTIFICATE_P12_BASE64 等 6 项）后才会产出；否则仅提供模拟器版。"
-            echo "- Windows 同时提供 exe 与 msi 两种安装器；桌面端按 arm64 / x64 区分。"
+            echo "- Windows 同时提供 exe 与 msi 两种安装器；macOS 因 GitHub Actions 已无 x86 runner，仅提供 arm64（Apple Silicon）版，Intel Mac 可通过 Rosetta 运行；Linux 桌面提供 x64（及 arm64 预览 runner）。"
           } > release_notes.md
           cat release_notes.md
 
