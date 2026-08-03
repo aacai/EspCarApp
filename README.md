@@ -104,10 +104,59 @@ EspCarClient/
 │       │   ├── App.kt              # 根入口与页面路由
 │       │   ├── ble/                # 控制层 + BLE 实现 + 协议解析
 │       │   └── ui/                 # Compose 界面与主题
+│       │       ├── control/        # 控制页（包）
+│       │       │   ├── ControlScreen.kt
+│       │       │   └── components/ # 控制页专属组件
+│       │       │       ├── DirectionalPad.kt
+│       │       │       └── StatusPanel.kt
+│       │       ├── scan/           # 扫描页（包）
+│       │       │   └── ScanScreen.kt
+│       │       ├── unsupported/    # 蓝牙不可用提示页（包）
+│       │       │   └── UnsupportedScreen.kt
+│       │       ├── components/     # 通用组件（跨页面复用）
+│       │       │   ├── CarIcons.kt
+│       │       │   └── TopBarToggles.kt
+│       │       └── theme/          # 主题与配色
 │       └── composeResources/       # 多语言字符串资源（values / values-zh）
 └── docs/
     └── 协议文档.md   # ESP32-C3 小车通信协议
 ```
+
+---
+
+## 🔧 关键实现
+
+### 架构：一套代码，四端共享
+业务逻辑与界面全部位于 `shared` 模块的 `commonMain`，平台相关能力通过 Kotlin 的 `expect/actual` 下沉到各端：
+- **BLE 通信**：`ble/PlatformBle.kt` 声明期望，`androidMain / iosMain / jvmMain / wasmJsMain` 各自实现。
+- **持久化存储**：`ble/KeyValueStore.kt` 声明 `expect fun createKeyValueStore()`，四端分别落地（见下）。
+
+### BLE 与协议
+- 基于 [Kable](https://github.com/JuulLabs/kable) 实现跨平台 BLE。
+- 控制指令为单字符 ASCII（`F/B/L/R/S` 方向 + `0-9` 速度档位，由 `ble/protocol.kt` 的 `CarCommands` 编解码），固件大小写等价。
+- 状态读取采用「通知触发 + 主动 Read 全量」以规避 MTU 分片；当 Notify 因 `scan` 数组超 BLE ATT 上限被截断时，由 `parseCarStatusTolerant` 扫描到顶层最后一个完整键值对补 `}` 再解析，仅丢弃非关键字段。
+
+### 安全兜底（防失控）
+`CarController` 内置多层保护，确保小车「绝不乱跑」：
+- **松手即停**：抬起方向键立即发 `S`。
+- **保活重发**：按住期间每 `KEEPALIVE_MS` 重发当前指令，防止丢包导致失控。
+- **看门狗**：若超过 `WATCHDOG_TIMEOUT_MS` 未收到新指令却仍在运动，自动补发 `S`。
+- **断连复位 + 自动重连**：断连即复位状态；状态读取连续失败（多为系统蓝牙栈清掉 GATT 上下文）时触发扫描重连。
+
+### 持久化
+自研极简键值存储抽象 `KeyValueStore`（零第三方依赖），四端分别落地：
+
+| 平台 | 实现 |
+|------|------|
+| Android | `SharedPreferences` |
+| iOS | `NSUserDefaults` |
+| Desktop (JVM) | `java.util.prefs.Preferences` |
+| Web (Wasm) | 浏览器 `localStorage` |
+
+用于记住上次连接设备、看门狗 / 自动重连开关、深 / 浅色主题与语言。
+
+### 状态收集
+Compose UI 统一使用 `collectAsStateWithLifecycle()` 订阅 `StateFlow`，非 Android 平台自动回退，四端行为一致。
 
 ---
 

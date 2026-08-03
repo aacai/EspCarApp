@@ -1,4 +1,4 @@
-package zhiqiu.car.app.ui
+package zhiqiu.car.app.ui.control
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -27,7 +27,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -43,15 +43,15 @@ import zhiqiu.car.app.ble.CarController
 import zhiqiu.car.app.ble.ConnectionState
 import zhiqiu.car.app.SettingsRepository
 import zhiqiu.car.app.ui.components.TopBarToggles
-import zhiqiu.car.app.ui.components.DirectionalPad
-import zhiqiu.car.app.ui.components.StatusPanel
+import zhiqiu.car.app.ui.components.CarGlyph
+import zhiqiu.car.app.ui.control.components.DirectionalPad
+import zhiqiu.car.app.ui.control.components.StatusPanel
 import zhiqiu.car.app.ui.theme.AccentAmber
 import zhiqiu.car.app.ui.theme.AccentCyan
 import zhiqiu.car.app.ui.theme.GradientButton
 import zhiqiu.car.app.ui.theme.AccentGreen
 import zhiqiu.car.app.ui.theme.AccentRed
 import zhiqiu.car.app.ui.theme.DangerGradient
-import zhiqiu.car.app.ui.components.CarGlyph
 import zhiqiu.car.app.ui.theme.HeroGradient
 import espcarclient.shared.generated.resources.*
 import org.jetbrains.compose.resources.stringResource
@@ -63,12 +63,12 @@ import org.jetbrains.compose.resources.stringResource
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ControlScreen(controller: CarController, settings: SettingsRepository) {
-    val status by controller.status.collectAsState()
-    val statusError by controller.statusError.collectAsState()
-    val currentDirection by controller.currentDirection.collectAsState()
-    val connection by controller.connectionState.collectAsState()
-    val error by controller.error.collectAsState()
-    val logLines by controller.logLines.collectAsState()
+    val status by controller.status.collectAsStateWithLifecycle()
+    val statusError by controller.statusError.collectAsStateWithLifecycle()
+    val currentDirection by controller.currentDirection.collectAsStateWithLifecycle()
+    val connection by controller.connectionState.collectAsStateWithLifecycle()
+    val error by controller.error.collectAsStateWithLifecycle()
+    val logLines by controller.logLines.collectAsStateWithLifecycle()
     val scope = rememberCoroutineScope()
 
     var speed by remember { mutableStateOf(60) }

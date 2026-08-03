@@ -1,4 +1,4 @@
-package zhiqiu.car.app.ui
+package zhiqiu.car.app.ui.scan
 
 import androidx.compose.animation.core.InfiniteRepeatableSpec
 import androidx.compose.animation.core.RepeatMode
@@ -31,7 +31,7 @@ import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -66,10 +66,10 @@ import org.jetbrains.compose.resources.stringResource
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ScanScreen(controller: CarController, settings: SettingsRepository) {
-    val devices by controller.scanDevices.collectAsState()
-    val isScanning by controller.isScanning.collectAsState()
-    val error by controller.error.collectAsState()
-    val connection by controller.connectionState.collectAsState()
+    val devices by controller.scanDevices.collectAsStateWithLifecycle()
+    val isScanning by controller.isScanning.collectAsStateWithLifecycle()
+    val error by controller.error.collectAsStateWithLifecycle()
+    val connection by controller.connectionState.collectAsStateWithLifecycle()
     // 扫描限时自动停止：BLE 持续扫描很费电，进入页面只扫一次，超时即停。
     val scanTimeoutMs = 10_000L
     var userStopped by remember { mutableStateOf(false) }

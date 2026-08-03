@@ -56,4 +56,13 @@ android {
     buildFeatures {
         compose = true
     }
+    // 只出 arm64-v8a 的 APK（绝大多数手机是 arm64，包更小）；如需其它 ABI 在此 include 即可。
+    splits {
+        abi {
+            isEnable = true
+            reset()
+            include("arm64-v8a")
+            isUniversalApk = false
+        }
+    }
 }

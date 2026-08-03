@@ -5,7 +5,7 @@ on:
   workflow_dispatch:
     inputs:
       build_android:
-        description: "Build Android (APK + AAB)"
+        description: "Build Android (APK, arm64-v8a)"
         type: boolean
         default: true
       build_desktop:
@@ -17,7 +17,7 @@ on:
         type: boolean
         default: true
       build_ios:
-        description: "Build iOS (simulator .app；配置仓库 Secrets 后可出签名 IPA)"
+        description: "Build iOS (simulator .app；需 Apple 付费开发者账号 + 仓库 Secrets 才出真机 IPA)"
         type: boolean
         default: false
   # 推送 tag（如 v1.0.0）时自动全量构建并发布 GitHub Release
@@ -28,13 +28,18 @@ on:
 permissions:
   contents: write
 
+# 同一 ref（tag）并发只保留最新一次，取消旧 run，避免重推 tag 时多个 run 抢同一 Release 造成竞态与浪费。
+concurrency:
+  group: build-${{ github.ref }}
+  cancel-in-progress: true
+
 defaults:
   run:
     shell: bash
 
 jobs:
   # ----------------------------------------------------------------
-  # Android：产出 release APK 与 AAB（用 AGP 自带 debug 签名即可安装）
+  # Android：仅产出 arm64-v8a 的 release APK（可直接安装；AAB 仅用于 Play Store 上架，不发布）
   # ----------------------------------------------------------------
   android:
     if: github.event_name == 'push' || inputs.build_android
@@ -57,16 +62,14 @@ jobs:
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v4
 
-      - name: Build Android release (APK + AAB)
-        run: ./gradlew :androidApp:assembleRelease :androidApp:bundleRelease --stacktrace
+      - name: Build Android release APK (arm64-v8a)
+        run: ./gradlew :androidApp:assembleRelease --stacktrace
 
       - name: Upload Android artifacts
         uses: actions/upload-artifact@v4
         with:
           name: android
-          path: |
-            androidApp/build/outputs/apk/release/*.apk
-            androidApp/build/outputs/bundle/release/*.aab
+          path: androidApp/build/outputs/apk/release/*.apk
           if-no-files-found: error
 
   # ----------------------------------------------------------------
@@ -79,10 +82,16 @@ jobs:
       matrix:
         include:
           - os: ubuntu-latest
+            arch: x64
             task: packageDeb
           - os: windows-latest
+            arch: x64
             task: packageMsi packageExe
           - os: macos-latest
+            arch: arm64
+            task: packageDmg
+          - os: macos-13
+            arch: x64
             task: packageDmg
     runs-on: ${{ matrix.os }}
     steps:
@@ -107,11 +116,83 @@ jobs:
       - name: Build desktop package
         run: ./gradlew :desktopApp:${{ matrix.task }} --stacktrace
 
+      - name: Add arch suffix to package filenames
+        shell: bash
+        run: |
+          cd desktopApp/build/compose/binaries/main
+          for ext in deb msi exe dmg; do
+            find . -type f -name "*.$ext" | while read -r f; do
+              mv "$f" "${f%.$ext}-${{ matrix.arch }}.$ext"
+            done
+          done
+
       - name: Upload Desktop artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: desktop-${{ matrix.os }}
-          path: desktopApp/build/compose/binaries/main/**/*
+          name: desktop-${{ matrix.os }}-${{ matrix.arch }}
+          path: |
+            desktopApp/build/compose/binaries/main/**/*.deb
+            desktopApp/build/compose/binaries/main/**/*.msi
+            desktopApp/build/compose/binaries/main/**/*.exe
+            desktopApp/build/compose/binaries/main/**/*.dmg
+          if-no-files-found: error
+
+  # arm64 桌面包：仅 Linux 走预览版 arm runner（ubuntu-24.04-arm）。
+  # 注：Windows on ARM 因 Gradle 原生服务不支持（Service 'SystemInfo' not available on
+  # Windows 11 aarch64）而暂时跳过；x64 的 exe/msi 在 Windows ARM 上可经模拟运行。
+  # continue-on-error 保证其不可用时不影响主发布。
+  desktop-arm:
+    if: github.event_name == 'push' || inputs.build_desktop
+    continue-on-error: true
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-24.04-arm
+            arch: arm64
+            task: packageDeb
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      - name: Install Linux packaging deps
+        if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y fakeroot dpkg
+
+      - name: Grant execute permission for gradlew
+        run: chmod +x gradlew
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Build desktop package
+        run: ./gradlew :desktopApp:${{ matrix.task }} --stacktrace
+
+      - name: Add arch suffix to package filenames
+        shell: bash
+        run: |
+          cd desktopApp/build/compose/binaries/main
+          for ext in deb msi exe dmg; do
+            find . -type f -name "*.$ext" | while read -r f; do
+              mv "$f" "${f%.$ext}-${{ matrix.arch }}.$ext"
+            done
+          done
+
+      - name: Upload Desktop artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: desktop-${{ matrix.os }}-${{ matrix.arch }}
+          path: |
+            desktopApp/build/compose/binaries/main/**/*.deb
+            desktopApp/build/compose/binaries/main/**/*.msi
+            desktopApp/build/compose/binaries/main/**/*.exe
+            desktopApp/build/compose/binaries/main/**/*.dmg
           if-no-files-found: error
 
   # ----------------------------------------------------------------
@@ -138,16 +219,22 @@ jobs:
       - name: Build Web (WasmJS)
         run: ./gradlew :webApp:wasmJsBrowserDistribution --stacktrace
 
+      - name: Package Web artifacts
+        run: |
+          cd webApp/build/dist/wasmJs/productionExecutable
+          zip -r "$GITHUB_WORKSPACE/web.zip" .
+
       - name: Upload Web artifacts
         uses: actions/upload-artifact@v4
         with:
           name: web
-          path: webApp/build/dist/wasmJs/productionExecutable/
+          path: web.zip
           if-no-files-found: error
 
   # ----------------------------------------------------------------
-  # iOS：默认构建 simulator .app（无需签名）；
-  #       若配置了以下仓库 Secrets，则走手动签名并导出真机 IPA：
+  # iOS：默认仅构建 simulator .app（无需签名，仅供 Mac 的 Xcode 模拟器运行，非真机 IPA）；
+  #       若要产出可装到真机的 IPA，需要【Apple 付费开发者账号 $99/年】并配置以下仓库 Secrets，
+  #       走手动签名 + exportArchive（method=ad-hoc，可侧载到已注册设备）：
   #         IOS_CERTIFICATE_P12_BASE64  - 打包导出为 base64 的开发者证书 p12
   #         IOS_CERTIFICATE_PASSWORD    - p12 密码
   #         IOS_PROVISION_PROFILE_BASE64- 打包导出为 base64 的 mobileprovision
@@ -211,7 +298,7 @@ jobs:
               echo '  <key>signingStyle</key>'
               echo '  <string>manual</string>'
               echo '  <key>method</key>'
-              echo '  <string>development</string>'
+              echo '  <string>ad-hoc</string>'
               echo '  <key>teamID</key>'
               echo "  <string>$IOS_TEAM_ID</string>"
               echo '  <key>provisioningProfiles</key>'
@@ -234,7 +321,7 @@ jobs:
             xcodebuild -project iosApp.xcodeproj -scheme iosApp \
               -configuration Release -sdk iphonesimulator \
               -derivedDataPath build
-            APP=$(find build -name "iosApp.app" -type d | head -n1)
+            APP=$(find build -name "*.app" -type d | head -n1)
             ditto -c -k --sequesterRsrc --keepParent "$APP" ../ios-simulator.zip
           fi
 
@@ -252,7 +339,7 @@ jobs:
   # ----------------------------------------------------------------
   release:
     if: startsWith(github.ref, 'refs/tags/')
-    needs: [android, desktop, web, ios]
+    needs: [android, desktop, desktop-arm, web, ios]
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -263,8 +350,96 @@ jobs:
           path: artifacts
           merge-multiple: true
 
+      - name: Delete existing release (clean stale assets)
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release delete "${GITHUB_REF_NAME}" --repo "${GITHUB_REPOSITORY}" --yes || true
+
+      - name: Generate release notes manifest
+        run: |
+          {
+            echo "# EspCarClient ${GITHUB_REF_NAME} 发布包"
+            echo
+            echo "各平台安装包（按系统 / 架构区分）："
+            echo
+            find artifacts -type f -printf '%f\n' | sort | while read -r f; do
+              case "$f" in
+                *.apk) desc="Android 安装包（arm64-v8a，可直接安装到手机）" ;;
+                *.aab) desc="Android App Bundle（仅用于 Play Store 上架，不能直接安装）" ;;
+                *-arm64.dmg|*-x64.dmg|*.dmg) desc="macOS 安装包（拖入应用程序即可）" ;;
+                *-arm64.msi|*-x64.msi|*.msi) desc="Windows 安装包（MSI）" ;;
+                *-arm64.exe|*-x64.exe|*.exe) desc="Windows 安装包（EXE）" ;;
+                *.deb) desc="Linux 安装包（Debian/Ubuntu，dpkg -i 安装）" ;;
+                web.zip) desc="Web 端（WasmJS）打包，解压后静态托管即可" ;;
+                ios-simulator.zip) desc="iOS 模拟器版（仅可在 Mac 的 Xcode 模拟器运行，非真机 IPA）" ;;
+                *.ipa) desc="iOS 真机安装包（IPA，可侧载到已注册设备）" ;;
+                *) desc="其他产物" ;;
+              esac
+              printf -- '- `%s` — %s\n' "$f" "$desc"
+            done
+            echo
+            echo "## 说明"
+            echo "- iOS 真机 IPA 需 Apple 付费开发者账号（\$99/年）并配置仓库 Secrets（IOS_CERTIFICATE_P12_BASE64 等 6 项）后才会产出；否则仅提供模拟器版。"
+            echo "- Windows 同时提供 exe 与 msi 两种安装器；桌面端按 arm64 / x64 区分。"
+          } > release_notes.md
+          cat release_notes.md
+
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
           files: artifacts/**/*
-          generate_release_notes: true
+          body_path: release_notes.md
+
+      # ----------------------------------------------------------------
+      # 镜像到 Gitee Release（需仓库 Secrets: GITEE_TOKEN；缺省则跳过）
+      # Gitee 用 v5 REST API：先建 Release，再逐个 attach_files
+      # ----------------------------------------------------------------
+      - name: Mirror to Gitee Release
+        if: env.GITEE_TOKEN != ''
+        continue-on-error: true
+        env:
+          GITEE_TOKEN: ${{ secrets.GITEE_TOKEN }}
+          GITEE_OWNER: grainbud
+          GITEE_REPO: EspCarApp
+        run: |
+          TAG="${GITHUB_REF_NAME}"
+          RESP=$(curl -s -X POST "https://gitee.com/api/v5/repos/$GITEE_OWNER/$GITEE_REPO/releases?access_token=$GITEE_TOKEN" \
+            -H "Content-Type: application/json" \
+            -d "{\"tag_name\":\"$TAG\",\"name\":\"$TAG\",\"body\":\"Automated mirror from GitHub Actions\"}")
+          REL_ID=$(echo "$RESP" | jq -r '.id // empty')
+          if [ -z "$REL_ID" ]; then echo "Gitee release create failed: $RESP"; exit 1; fi
+          find artifacts -type f | while read -r f; do
+            curl -s -X POST "https://gitee.com/api/v5/repos/$GITEE_OWNER/$GITEE_REPO/releases/$REL_ID/attach_files?access_token=$GITEE_TOKEN" \
+              -F "file=@$f"
+          done
+
+      # ----------------------------------------------------------------
+      # 镜像到 CNB Release（需仓库 Secrets: CNB_TOKEN，需 repo-code:rw；缺省则跳过）
+      # CNB 用三步握手：建 Release -> 取预签名上传 URL -> 上传 -> 校验
+      # ----------------------------------------------------------------
+      - name: Mirror to CNB Release
+        if: env.CNB_TOKEN != ''
+        continue-on-error: true
+        env:
+          CNB_TOKEN: ${{ secrets.CNB_TOKEN }}
+          CNB_REPO: zhiqiu520/EspCarApp
+        run: |
+          set -e
+          TAG="${GITHUB_REF_NAME}"
+          API="https://cnb.cool/$CNB_REPO"
+          AUTH="Authorization: Bearer $CNB_TOKEN"
+          BODY=$(jq -n --arg t "$TAG" --arg n "$TAG" '{name:$n, tag_name:$t, target_commitish:"master"}')
+          RESP=$(curl -s -X POST "$API/-/releases" -H "$AUTH" -H "Content-Type: application/json" -H "Accept: application/json" -d "$BODY")
+          REL_ID=$(echo "$RESP" | jq -r '.id // .release_id // empty')
+          if [ -z "$REL_ID" ]; then echo "CNB release create failed: $RESP"; exit 1; fi
+          find artifacts -type f | while read -r f; do
+            NAME=$(basename "$f")
+            SIZE=$(stat -c%s "$f")
+            UP=$(curl -s -X POST "$API/-/releases/$REL_ID/asset-upload-url" -H "$AUTH" -H "Content-Type: application/json" \
+              -d "{\"asset_name\":\"$NAME\",\"overwrite\":true,\"size\":$SIZE}")
+            UPLOAD_URL=$(echo "$UP" | jq -r '.UploadURL // .upload_url // empty')
+            VERIFY_URL=$(echo "$UP" | jq -r '.VerifyURL // .verify_url // empty')
+            if [ -z "$UPLOAD_URL" ]; then echo "No CNB upload URL for $NAME: $UP"; continue; fi
+            curl -s -X POST "$UPLOAD_URL" -F "file=@$f"
+            if [ -n "$VERIFY_URL" ]; then curl -s -X POST "$VERIFY_URL" -H "$AUTH"; fi
+          done

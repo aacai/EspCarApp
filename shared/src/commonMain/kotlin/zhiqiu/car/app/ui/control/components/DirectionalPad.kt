@@ -1,4 +1,4 @@
-package zhiqiu.car.app.ui.components
+package zhiqiu.car.app.ui.control.components
 
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.background
@@ -25,6 +25,7 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import zhiqiu.car.app.ble.CarDirection
+import zhiqiu.car.app.ui.components.CarGlyph
 import zhiqiu.car.app.ui.theme.AccentCyan
 import zhiqiu.car.app.ui.theme.AccentGradient
 

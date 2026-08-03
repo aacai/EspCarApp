@@ -11,6 +11,7 @@ import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -23,6 +24,10 @@ import zhiqiu.car.app.platformLog
 
 /**
  * 业务逻辑控制器，桥接 [BleClient] 与 UI。
+ *
+ * 在架构上扮演 **ViewModel** 角色：持有 `CoroutineScope`、以 [StateFlow] 暴露全部界面状态、
+ * 封装所有 BLE 业务与副作用，且为纯 Kotlin 类（不依赖 Compose）。因此各 Screen 无需再叠加
+ * 一层 `lifecycle-viewmodel`，直接订阅此处的状态流即可。
  *
  * 安全兜底：松手即发 `S`、按住期间按 [KEEPALIVE_MS] 保活重发、看门狗超时补 `S`、断连复位。
  * 状态以 [STATUS_POLL_MS] 周期 Read 为主、Notify 为辅，均走容错解析 [parseCarStatusTolerant]
@@ -62,7 +67,7 @@ public class CarController(
             Result.failure(e)
         }
 
-    private val scope = CoroutineScope(Job() + dispatcher)
+    private val scope = CoroutineScope(SupervisorJob() + dispatcher)
 
     private val _scanDevices = MutableStateFlow<List<DiscoveredDevice>>(emptyList())
     public val scanDevices: StateFlow<List<DiscoveredDevice>> = _scanDevices.asStateFlow()
@@ -237,8 +242,7 @@ public class CarController(
     /** 按下某方向：立即发送一次，并启动保活重发。 */
     public fun pressDirection(direction: CarDirection) {
         _currentDirection.value = direction
-        lastCommandChar.store(CarCommands.directionChar(direction))
-        lastCommandAt.store(clock())
+        markCommand(CarCommands.directionChar(direction))
         scope.launch { sendCommand(lastCommandChar.load()) }
         startKeepAlive(direction)
     }
@@ -257,21 +261,19 @@ public class CarController(
         keepAliveJob?.cancel()
         keepAliveJob = null
         _currentDirection.value = null
-        lastCommandChar.store('S')
-        lastCommandAt.store(clock())
+        markCommand('S')
         scope.launch { sendCommand('S') }
     }
 
     private fun startKeepAlive(direction: CarDirection) {
         keepAliveJob?.cancel()
         keepAliveJob = scope.launch {
-            while (isActive) {
-                delay(KEEPALIVE_MS)
-                val ch = CarCommands.directionChar(direction)
-                lastCommandChar.store(ch)
-                lastCommandAt.store(clock())
-                sendCommand(ch)
-            }
+        while (isActive) {
+            delay(KEEPALIVE_MS)
+            val ch = CarCommands.directionChar(direction)
+            markCommand(ch)
+            sendCommand(ch)
+        }
         }
     }
     // endregion
@@ -367,9 +369,8 @@ public class CarController(
                 val stale = clock() - lastCommandAt.load() > WATCHDOG_TIMEOUT_MS
                 if (moving && stale && lastCommandChar.load() != 'S') {
                     runCatching { conn.writeCommand(CarCommands.encode('S')) }
-                    lastCommandChar.store('S')
+                    markCommand('S')
                     _currentDirection.value = null
-                    lastCommandAt.store(clock())
                 }
             }
         }
@@ -402,6 +403,12 @@ public class CarController(
         connection = null
     }
 
+    /** 记录最近一次发出的指令字符与时间戳，看门狗与保活据此判断指令是否「陈旧」。 */
+    private fun markCommand(char: Char) {
+        lastCommandChar.store(char)
+        lastCommandAt.store(clock())
+    }
+
     private suspend fun sendCommand(char: Char) {
         val conn = connection ?: return
         runCatching {
@@ -413,22 +420,30 @@ public class CarController(
         }
     }
 
+    /**
+     * 开始扫描并在 [timeoutMs] 内等待匹配 [deviceId] 的设备出现，找到返回设备、超时返回 null。
+     * 用于「记住设备」的自动重连，以及状态读取失败后的连接重建。
+     */
+    private suspend fun scanUntilFound(deviceId: String, timeoutMs: Long): DiscoveredDevice? {
+        startScan()
+        val deadline = clock() + timeoutMs
+        return try {
+            var found: DiscoveredDevice? = null
+            while (scope.isActive && clock() < deadline && found == null) {
+                found = _scanDevices.value.firstOrNull { it.id == deviceId }
+                if (found == null) delay(200)
+            }
+            found
+        } finally {
+            if (_connectionState.value != ConnectionState.Connected) stopScan()
+        }
+    }
+
     /** 自动重连上次设备：扫描并在超时内匹配到 remembered id 即连接。 */
     public suspend fun autoReconnectIfNeeded() {
         if (!settings.autoReconnect) return
         val id = settings.lastDeviceId ?: return
-        val deadline = clock() + AUTO_RECONNECT_TIMEOUT_MS
-        startScan()
-        try {
-            var found: DiscoveredDevice? = null
-            while (clock() < deadline && found == null) {
-                found = _scanDevices.value.firstOrNull { it.id == id }
-                if (found == null) delay(200)
-            }
-            found?.let { connect(it) }
-        } finally {
-            if (_connectionState.value != ConnectionState.Connected) stopScan()
-        }
+        scanUntilFound(id, AUTO_RECONNECT_TIMEOUT_MS)?.let { connect(it) }
     }
 
     /**
@@ -442,25 +457,21 @@ public class CarController(
             _statusError.value = "状态读取失败且无连接记录，请返回扫描页手动连接"
             return
         }
-        val deadline = clock() + AUTO_RECONNECT_TIMEOUT_MS
-        startScan()
-        try {
-            var found: DiscoveredDevice? = null
-            while (scope.isActive && clock() < deadline && found == null) {
-                found = _scanDevices.value.firstOrNull { it.id == id }
-                if (found == null) delay(200)
-            }
-            if (found != null) {
-                connect(found)
-            } else {
-                _statusError.value = "自动重连超时：未找到小车，请手动连接"
-            }
-        } finally {
-            if (_connectionState.value != ConnectionState.Connected) stopScan()
+        val found = scanUntilFound(id, AUTO_RECONNECT_TIMEOUT_MS)
+        if (found != null) {
+            connect(found)
+        } else {
+            _statusError.value = "自动重连超时：未找到小车，请手动连接"
         }
     }
 
-    /** 释放所有资源（ViewModel.onCleared 时调用）。 */
+    /**
+     * 释放所有资源：取消内部 [CoroutineScope]，进而停止看门狗、保活、状态轮询等全部协程。
+     *
+     * 本类为 App 级单例（由 [App] 以 `remember` 持有），生命周期等同进程，通常无需手动调用；
+     * 但若在非 App 级场景复用，或在平台入口（如 Android `Activity.onDestroy`）需要确定性释放时，
+     * 可显式调用本方法。
+     */
     public fun close() {
         scope.cancel()
     }

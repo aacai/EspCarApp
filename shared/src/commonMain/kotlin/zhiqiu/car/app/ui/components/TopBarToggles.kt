@@ -8,7 +8,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.collectAsState
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -25,8 +25,8 @@ import zhiqiu.car.app.SettingsRepository
  */
 @Composable
 fun TopBarToggles(settings: SettingsRepository, modifier: Modifier = Modifier) {
-    val language by settings.language.collectAsState()
-    val darkMode by settings.darkMode.collectAsState()
+    val language by settings.language.collectAsStateWithLifecycle()
+    val darkMode by settings.darkMode.collectAsStateWithLifecycle()
 
     Row(modifier = modifier, verticalAlignment = Alignment.CenterVertically) {
         TextButton(onClick = {

@@ -1,4 +1,4 @@
-package zhiqiu.car.app.ui
+package zhiqiu.car.app.ui.unsupported
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement

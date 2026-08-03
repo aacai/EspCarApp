@@ -3,7 +3,6 @@ package zhiqiu.car.app
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
 import androidx.compose.runtime.remember
@@ -12,16 +11,16 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import zhiqiu.car.app.ble.CarController
 import zhiqiu.car.app.ble.ConnectionState
 import zhiqiu.car.app.ble.KableBleClient
-import zhiqiu.car.app.ui.ControlScreen
-import zhiqiu.car.app.ui.ScanScreen
-import zhiqiu.car.app.ui.UnsupportedScreen
+import zhiqiu.car.app.ui.control.ControlScreen
+import zhiqiu.car.app.ui.scan.ScanScreen
+import zhiqiu.car.app.ui.unsupported.UnsupportedScreen
 import zhiqiu.car.app.ui.theme.AppTheme
 
 @Composable
 fun App() {
     val settings = remember { SettingsRepository() }
-    val darkMode by settings.darkMode.collectAsState()
-    val language by settings.language.collectAsState()
+    val darkMode by settings.darkMode.collectAsStateWithLifecycle()
+    val language by settings.language.collectAsStateWithLifecycle()
     val controller = remember { CarController(KableBleClient()) }
 
     AppTheme(darkTheme = darkMode) {

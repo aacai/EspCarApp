@@ -1,4 +1,4 @@
-package zhiqiu.car.app.ui.components
+package zhiqiu.car.app.ui.control.components
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -26,6 +26,14 @@ import androidx.compose.ui.unit.dp
 import zhiqiu.car.app.ble.CarStatus
 import zhiqiu.car.app.ble.formatBytes
 import zhiqiu.car.app.ble.formatUptime
+import zhiqiu.car.app.ui.components.BluetoothGlyph
+import zhiqiu.car.app.ui.components.CarGlyph
+import zhiqiu.car.app.ui.components.ClockGlyph
+import zhiqiu.car.app.ui.components.GlobeGlyph
+import zhiqiu.car.app.ui.components.MemoryGlyph
+import zhiqiu.car.app.ui.components.SpeedGlyph
+import zhiqiu.car.app.ui.components.TerminalGlyph
+import zhiqiu.car.app.ui.components.WifiGlyph
 import zhiqiu.car.app.ui.theme.AccentAmber
 import zhiqiu.car.app.ui.theme.AccentCyan
 import zhiqiu.car.app.ui.theme.AccentGreen
