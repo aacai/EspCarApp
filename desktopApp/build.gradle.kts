@@ -21,8 +21,11 @@ compose.desktop {
 
         nativeDistributions {
             targetFormats(TargetFormat.Dmg, TargetFormat.Msi, TargetFormat.Exe, TargetFormat.Deb)
-            packageName = "zhiqiu.car.app"
+            packageName = "EspCarClient"
             packageVersion = "1.0.0"
+            macOS {
+                bundleID = "zhiqiu.car.app"
+            }
         }
     }
 }
