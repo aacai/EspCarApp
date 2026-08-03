@@ -36,6 +36,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -139,7 +140,7 @@ class ControlScreen(
                         }
                     },
                     actions = {
-                        IconButton(onClick = { navigator.push(SettingsScreen(controller, settings)) }) {
+                        IconButton(onClick = { navigator.push(SettingsScreen(settings)) }) {
                             Icon(Icons.Rounded.Settings, null, tint = MaterialTheme.colorScheme.onPrimary)
                         }
                         TextButton(onClick = { showLog = !showLog }) {

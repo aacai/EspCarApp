@@ -37,7 +37,7 @@ import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
-import cafe.adriel.voyager.viewmodel.rememberScreenModel
+import cafe.adriel.voyager.core.screenmodel.rememberScreenModel
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -171,7 +171,7 @@ class SettingsScreen(
                     },
                     trailingContent = {
                         Switch(
-                            checked = filterNamelessEnabled,
+                            checked = viewModel.filterNamelessEnabled,
                             onCheckedChange = { settings.setFilterNamelessEnabled(it) },
                         )
                     },
@@ -211,7 +211,7 @@ class SettingsScreen(
                         )
                     },
                     colors = ListItemDefaults.colors(),
-                    modifier = Modifier.clickable { showThemeDialog = true },
+                    modifier = Modifier.clickable { viewModel.openThemeDialog() },
                 )
             }
             item {
@@ -221,7 +221,7 @@ class SettingsScreen(
                     },
                     supportingContent = {
                         Text(
-                            when (language) {
+                            when (viewModel.language) {
                                 SettingsRepository.LANGUAGE_SYSTEM -> stringResource(Res.string.lang_system)
                                 SettingsRepository.LANGUAGE_ZH -> stringResource(Res.string.lang_zh)
                                 else -> stringResource(Res.string.lang_en)

@@ -129,7 +129,7 @@ class ScanScreen(
                             )
                         },
                         actions = {
-                            IconButton(onClick = { navigator.push(SettingsScreen(controller, settings)) }) {
+                            IconButton(onClick = { navigator.push(SettingsScreen(settings)) }) {
                                 Icon(Icons.Rounded.Settings, null, tint = MaterialTheme.colorScheme.onPrimary)
                             }
                             IconButton(onClick = {

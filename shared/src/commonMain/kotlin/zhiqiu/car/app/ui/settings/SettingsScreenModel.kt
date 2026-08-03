@@ -2,7 +2,7 @@ package zhiqiu.car.app.ui.settings
 
 import androidx.compose.runtime.State
 import androidx.compose.runtime.mutableStateOf
-import cafe.adriel.voyager.viewmodel.ScreenModel
+import cafe.adriel.voyager.core.model.ScreenModel
 import zhiqiu.car.app.SettingsRepository
 
 /**
