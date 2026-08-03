@@ -2,6 +2,8 @@ rootProject.name = "EspCarClient"
 
 pluginManagement {
     repositories {
+        maven { url = uri("https://maven.aliyun.com/repository/gradle-plugin") }
+        maven { url = uri("https://maven.aliyun.com/repository/public") }
         google {
             mavenContent {
                 includeGroupAndSubgroups("androidx")
@@ -16,6 +18,9 @@ pluginManagement {
 
 dependencyResolutionManagement {
     repositories {
+        mavenCentral()
+        maven { url = uri("https://maven.aliyun.com/repository/public") }
+        maven { url = uri("https://maven.aliyun.com/repository/google") }
         google {
             mavenContent {
                 includeGroupAndSubgroups("androidx")
@@ -23,7 +28,6 @@ dependencyResolutionManagement {
                 includeGroupAndSubgroups("com.google")
             }
         }
-        mavenCentral()
     }
 }
 

@@ -11,6 +11,9 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.DirectionsCar
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -18,16 +21,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import zhiqiu.car.app.ble.CarDirection
-import zhiqiu.car.app.ui.components.CarGlyph
-import zhiqiu.car.app.ui.theme.AccentCyan
-import zhiqiu.car.app.ui.theme.AccentGradient
+import zhiqiu.car.app.ui.theme.SakuraDeep
 
 /**
  * 方向盘：上(前)/下(后)/左/右 四个方向键，按下即发送指令、松开即停车；
@@ -55,7 +55,7 @@ fun DirectionalPad(
                     .background(MaterialTheme.colorScheme.surfaceVariant),
                 contentAlignment = Alignment.Center,
             ) {
-                CarGlyph(tint = MaterialTheme.colorScheme.onSurfaceVariant, size = 40)
+                Icon(Icons.Rounded.DirectionsCar, null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
             }
             ArrowButton("→", CarDirection.Right, current == CarDirection.Right, onPress, onRelease)
         }
@@ -77,10 +77,10 @@ private fun ArrowButton(
             .size(96.dp)
             .scale(scale.value)
             .clip(RoundedCornerShape(24.dp))
-            .background(brush = if (active) AccentGradient else SolidColor(MaterialTheme.colorScheme.surfaceVariant))
+            .background(brush = if (active) SolidColor(SakuraDeep) else SolidColor(MaterialTheme.colorScheme.surfaceVariant))
             .then(
                 if (active) {
-                    Modifier.border(2.dp, AccentCyan, RoundedCornerShape(24.dp))
+                    Modifier.border(2.dp, SakuraDeep, RoundedCornerShape(24.dp))
                 } else {
                     Modifier
                 },

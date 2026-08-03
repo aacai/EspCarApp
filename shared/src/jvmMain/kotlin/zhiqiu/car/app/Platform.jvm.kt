@@ -9,3 +9,7 @@ actual fun getPlatform(): Platform = JVMPlatform()
 internal actual fun platformLog(tag: String, message: String) {
     println("[$tag] $message")
 }
+
+actual fun openBluetoothSettings() {
+    // JVM 桌面平台无蓝牙设置
+}

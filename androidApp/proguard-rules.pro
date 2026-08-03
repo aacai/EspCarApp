@@ -1,21 +1,64 @@
-# Add project specific ProGuard rules here.
-# You can control the set of applied configuration files using the
-# proguardFiles setting in build.gradle.
-#
-# For more details, see
-#   http://developer.android.com/guide/developing/tools/proguard.html
+# =============================================
+# Kotlin Metadata (反射/序列化依赖)
+# =============================================
+-keep class kotlin.Metadata { *; }
 
-# If your project uses WebView with JS, uncomment the following
-# and specify the fully qualified class name to the JavaScript interface
-# class:
-#-keepclassmembers class fqcn.of.javascript.interface.for.webview {
-#   public *;
-#}
+# =============================================
+# Kotlin Coroutines (官方规则)
+# https://github.com/Kotlin/kotlinx.coroutines
+# =============================================
+-keepnames class kotlinx.coroutines.internal.MainDispatcherFactory {}
+-keepnames class kotlinx.coroutines.CoroutineExceptionHandler {}
+-keepnames class kotlinx.coroutines.android.AndroidExceptionPreHandler {}
+-keepnames class kotlinx.coroutines.android.AndroidDispatcherFactory {}
+-keepclassmembernames class kotlinx.** {
+    volatile <fields>;
+}
 
-# Uncomment this to preserve the line number information for
-# debugging stack traces.
-#-keepattributes SourceFile,LineNumberTable
+# =============================================
+# Kotlinx Serialization (官方规则)
+# https://github.com/Kotlin/kotlinx.serialization
+# =============================================
+-keepattributes *Annotation*, InnerClasses, EnclosingMethod
 
-# If you keep the line number information, uncomment this to
-# hide the original source file name.
-#-renamesourcefileattribute SourceFile
+# Keep serializer for companion objects of @Serializable classes
+-if @kotlinx.serialization.Serializable class ** {
+    static **$* *;
+}
+-keepclassmembers class <1>$<2> {
+    kotlinx.serialization.KSerializer serializer(...);
+}
+
+# Keep INSTANCE.serializer() of @Serializable objects
+-if @kotlinx.serialization.Serializable class ** {
+    public static ** INSTANCE;
+}
+-keepclassmembers class <1> {
+    public static <1> INSTANCE;
+    kotlinx.serialization.KSerializer serializer(...);
+}
+
+# Keep $$serializer classes
+-keepnames class **$$serializer {
+    static **$$serializer INSTANCE;
+}
+
+# Keep our own serializable classes
+-keep,includedescriptorclasses class zhiqiu.car.app.**$$serializer { *; }
+-keepclassmembers class zhiqiu.car.app.** {
+    *** Companion;
+}
+-keepclasseswithmembers class zhiqiu.car.app.** {
+    kotlinx.serialization.KSerializer serializer(...);
+}
+
+# =============================================
+# 项目自身代码 (仅保留必要的)
+# =============================================
+-keep @androidx.compose.runtime.Composable public class * { *; }
+-keepclassmembers class * extends androidx.activity.ComponentActivity {
+    public *** onCreate(...);
+}
+-keepclassmembers class * {
+    @composable *** *(...);
+}

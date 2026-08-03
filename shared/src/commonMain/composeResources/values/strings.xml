@@ -25,6 +25,8 @@
 
     <string name="bluetooth_unavailable">Bluetooth Unavailable</string>
     <string name="bluetooth_unavailable_hint">This device has not granted Bluetooth permission or the hardware is unavailable, so it cannot scan for or connect to the car. Please enable Bluetooth in system settings and try again.</string>
+    <string name="bluetooth_disabled_hint">Bluetooth is turned off. Please enable Bluetooth in system settings and try again.</string>
+    <string name="open_bluetooth_settings">Open Bluetooth Settings</string>
 
     <string name="status_title">Car Status</string>
     <string name="label_action">Action</string>
@@ -43,4 +45,19 @@
     <string name="lang_en">EN</string>
     <string name="language_toggle">Language</string>
     <string name="theme_toggle">Theme</string>
+
+    <string name="settings_title">Settings</string>
+    <string name="settings_group_scan">Scan Filter</string>
+    <string name="settings_scan_prefix_label">Device Name Prefix</string>
+    <string name="settings_scan_prefix_hint">e.g. EspCar_ (only devices starting with this prefix will be shown)</string>
+    <string name="settings_filter_nameless">Hide nameless devices</string>
+    <string name="settings_filter_nameless_desc">Hide Bluetooth devices whose name cannot be read</string>
+    <string name="settings_group_appearance">Appearance</string>
+    <string name="settings_theme_label">Theme</string>
+    <string name="settings_theme_light">Light</string>
+    <string name="settings_theme_dark">Dark</string>
+    <string name="settings_language_label">Language</string>
+    <string name="settings_save">Save</string>
+    <string name="settings_reset_default">Reset</string>
+    <string name="settings_done">Done</string>
 </resources>

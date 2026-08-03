@@ -39,9 +39,8 @@ android {
     }
     buildTypes {
         release {
-            isMinifyEnabled = false
-            // 本地 adb 侧载测试：用 AGP 自带的 debug 签名，免去 keystore 即可产出可安装的 release APK。
-            // 正式发布请替换为真实签名（signingConfigs.create("release") { ... }）。
+            isMinifyEnabled = true
+            isShrinkResources = true
             signingConfig = signingConfigs.getByName("debug")
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
@@ -56,7 +55,6 @@ android {
     buildFeatures {
         compose = true
     }
-    // 只出 arm64-v8a 的 APK（绝大多数手机是 arm64，包更小）；如需其它 ABI 在此 include 即可。
     splits {
         abi {
             isEnable = true

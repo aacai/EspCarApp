@@ -1,17 +1,19 @@
 package zhiqiu.car.app.ui.components
 
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.size
+import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.DarkMode
+import androidx.compose.material.icons.rounded.LightMode
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import espcarclient.shared.generated.resources.Res
 import espcarclient.shared.generated.resources.lang_en
 import espcarclient.shared.generated.resources.lang_system
@@ -42,15 +44,11 @@ fun TopBarToggles(settings: SettingsRepository, modifier: Modifier = Modifier) {
                 SettingsRepository.LANGUAGE_EN -> stringResource(Res.string.lang_en)
                 else -> stringResource(Res.string.lang_system)
             }
-            Text(label, color = Color.White, style = MaterialTheme.typography.labelMedium)
+            Text(label, color = MaterialTheme.colorScheme.onPrimary, style = MaterialTheme.typography.labelMedium)
         }
 
         IconButton(onClick = { settings.setDarkMode(!darkMode) }) {
-            if (darkMode) {
-                SunGlyph(tint = Color.White, size = 22)
-            } else {
-                MoonGlyph(tint = Color.White, size = 22)
-            }
+            Icon(if (darkMode) Icons.Rounded.LightMode else Icons.Rounded.DarkMode, null, tint = MaterialTheme.colorScheme.onPrimary)
         }
     }
 }

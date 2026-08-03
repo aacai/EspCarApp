@@ -12,8 +12,18 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.Bluetooth
+import androidx.compose.material.icons.rounded.DirectionsCar
+import androidx.compose.material.icons.rounded.Memory
+import androidx.compose.material.icons.rounded.Public
+import androidx.compose.material.icons.rounded.Schedule
+import androidx.compose.material.icons.rounded.Speed
+import androidx.compose.material.icons.rounded.Terminal
+import androidx.compose.material.icons.rounded.Wifi
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -21,19 +31,12 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import zhiqiu.car.app.ble.CarStatus
 import zhiqiu.car.app.ble.formatBytes
 import zhiqiu.car.app.ble.formatUptime
-import zhiqiu.car.app.ui.components.BluetoothGlyph
-import zhiqiu.car.app.ui.components.CarGlyph
-import zhiqiu.car.app.ui.components.ClockGlyph
-import zhiqiu.car.app.ui.components.GlobeGlyph
-import zhiqiu.car.app.ui.components.MemoryGlyph
-import zhiqiu.car.app.ui.components.SpeedGlyph
-import zhiqiu.car.app.ui.components.TerminalGlyph
-import zhiqiu.car.app.ui.components.WifiGlyph
 import zhiqiu.car.app.ui.theme.AccentAmber
 import zhiqiu.car.app.ui.theme.AccentCyan
 import zhiqiu.car.app.ui.theme.AccentGreen
@@ -43,7 +46,7 @@ import espcarclient.shared.generated.resources.*
 import org.jetbrains.compose.resources.stringResource
 
 private data class Metric(
-    val icon: @Composable () -> Unit,
+    val icon: ImageVector,
     val label: String,
     val value: String,
     val tint: Color,
@@ -60,7 +63,7 @@ fun StatusPanel(status: CarStatus) {
     ) {
         Column(modifier = Modifier.padding(18.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                CarGlyph(tint = AccentCyan)
+                Icon(Icons.Rounded.DirectionsCar, null, tint = AccentCyan)
                 Spacer(Modifier.width(8.dp))
                 Text(
                     text = stringResource(Res.string.status_title),
@@ -81,14 +84,14 @@ fun StatusPanel(status: CarStatus) {
 
             val bleOnline = status.ble > 0
             val metrics = listOf(
-                Metric({ CarGlyph(tint = AccentCyan) }, stringResource(Res.string.label_action), status.action, AccentCyan),
-                Metric({ SpeedGlyph(tint = AccentAmber) }, stringResource(Res.string.label_speed), "${status.speed}%", AccentAmber),
-                Metric({ TerminalGlyph(tint = AccentGreen) }, stringResource(Res.string.label_commands), status.cmd_count.toString(), AccentGreen),
-                Metric({ ClockGlyph(tint = AccentIndigo) }, stringResource(Res.string.label_uptime), formatUptime(status.uptime), AccentIndigo),
-                Metric({ MemoryGlyph(tint = AccentCyan) }, stringResource(Res.string.label_free_heap), formatBytes(status.free_heap), AccentCyan),
-                Metric({ BluetoothGlyph(tint = if (bleOnline) AccentGreen else AccentRed) }, stringResource(Res.string.label_ble), if (bleOnline) stringResource(Res.string.status_online) else stringResource(Res.string.status_offline), if (bleOnline) AccentGreen else AccentRed),
-                Metric({ WifiGlyph(tint = AccentCyan) }, stringResource(Res.string.label_wifi), status.wifiState, AccentCyan),
-                Metric({ GlobeGlyph(tint = AccentIndigo) }, stringResource(Res.string.label_ip), status.ip, AccentIndigo),
+                Metric(Icons.Rounded.DirectionsCar, stringResource(Res.string.label_action), status.action, AccentCyan),
+                Metric(Icons.Rounded.Speed, stringResource(Res.string.label_speed), "${status.speed}%", AccentAmber),
+                Metric(Icons.Rounded.Terminal, stringResource(Res.string.label_commands), status.cmd_count.toString(), AccentGreen),
+                Metric(Icons.Rounded.Schedule, stringResource(Res.string.label_uptime), formatUptime(status.uptime), AccentIndigo),
+                Metric(Icons.Rounded.Memory, stringResource(Res.string.label_free_heap), formatBytes(status.free_heap), AccentCyan),
+                Metric(Icons.Rounded.Bluetooth, stringResource(Res.string.label_ble), if (bleOnline) stringResource(Res.string.status_online) else stringResource(Res.string.status_offline), if (bleOnline) AccentGreen else AccentRed),
+                Metric(Icons.Rounded.Wifi, stringResource(Res.string.label_wifi), status.wifiState, AccentCyan),
+                Metric(Icons.Rounded.Public, stringResource(Res.string.label_ip), status.ip, AccentIndigo),
             )
 
             metrics.chunked(2).forEach { row ->
@@ -123,7 +126,7 @@ private fun MetricCard(metric: Metric, modifier: Modifier = Modifier) {
                 .background(metric.tint.copy(alpha = 0.15f)),
             contentAlignment = Alignment.Center,
         ) {
-            metric.icon()
+            Icon(metric.icon, null, tint = metric.tint)
         }
         Spacer(Modifier.width(10.dp))
         Column {

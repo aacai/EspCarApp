@@ -25,6 +25,8 @@
 
     <string name="bluetooth_unavailable">蓝牙不可用</string>
     <string name="bluetooth_unavailable_hint">本设备未授予蓝牙权限或硬件不可用，无法扫描并连接小车。请在系统设置中开启蓝牙后重试。</string>
+    <string name="bluetooth_disabled_hint">蓝牙未开启，请在系统设置中打开蓝牙后重试。</string>
+    <string name="open_bluetooth_settings">打开蓝牙设置</string>
 
     <string name="status_title">小车状态</string>
     <string name="label_action">动作</string>
@@ -43,4 +45,19 @@
     <string name="lang_en">EN</string>
     <string name="language_toggle">语言</string>
     <string name="theme_toggle">主题</string>
+
+    <string name="settings_title">设置</string>
+    <string name="settings_group_scan">扫描过滤</string>
+    <string name="settings_scan_prefix_label">设备名称前缀</string>
+    <string name="settings_scan_prefix_hint">例如：EspCar_（只显示以此前缀开头的设备）</string>
+    <string name="settings_filter_nameless">隐藏无名字设备</string>
+    <string name="settings_filter_nameless_desc">隐藏无法获取名称的蓝牙设备</string>
+    <string name="settings_group_appearance">外观</string>
+    <string name="settings_theme_label">主题模式</string>
+    <string name="settings_theme_light">浅色（白天）</string>
+    <string name="settings_theme_dark">深色（夜间）</string>
+    <string name="settings_language_label">语言</string>
+    <string name="settings_save">保存</string>
+    <string name="settings_reset_default">恢复默认</string>
+    <string name="settings_done">完成</string>
 </resources>

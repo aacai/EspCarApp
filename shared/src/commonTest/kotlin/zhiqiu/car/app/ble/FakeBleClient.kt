@@ -9,7 +9,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
 /** 测试用示例状态 JSON（与固件字段一致）。 */
-public val SAMPLE_STATUS_JSON: String = """
+val SAMPLE_STATUS_JSON: String = """
 {
   "ip":"192.168.50.100",
   "uptime":373,
@@ -30,20 +30,20 @@ public val SAMPLE_STATUS_JSON: String = """
  * 不触达真实蓝牙的内存版 [BleClient]，供单元测试与 Compose UI 测试使用。
  * 行为可由测试脚本驱动：注入状态、模拟断连、设置连接失败。
  */
-public class FakeBleClient(
-    public val supported: Boolean = true,
-    public val mode: DiscoveryMode = DiscoveryMode.Scan,
-    public val devices: List<DiscoveredDevice> = listOf(
+class FakeBleClient(
+    val supported: Boolean = true,
+    val mode: DiscoveryMode = DiscoveryMode.Scan,
+    val devices: List<DiscoveredDevice> = listOf(
         DiscoveredDevice("AA:BB:CC:DD:EE:01", "EspCar_ABCDEF", -50),
         DiscoveredDevice("AA:BB:CC:DD:EE:02", "EspCar_123456", -60),
     ),
 ) : BleClient {
 
-    public var lastConnectedId: String? = null
-    public var lastConnectedName: String? = null
-    public val writtenCommands: MutableList<ByteArray> = mutableListOf()
-    public var shouldFailConnect: Boolean = false
-    public var lastFilter: ScanFilter? = null
+    var lastConnectedId: String? = null
+    var lastConnectedName: String? = null
+    val writtenCommands: MutableList<ByteArray> = mutableListOf()
+    var shouldFailConnect: Boolean = false
+    var lastFilter: ScanFilter? = null
 
     override val isSupported: Boolean get() = supported
     override val discoveryMode: DiscoveryMode get() = mode
@@ -70,8 +70,8 @@ public class FakeBleClient(
  * 测试用连接句柄：状态与通知均可由测试脚本驱动。
  * 不自动推送状态，控制器连接后应主动 readStatus 拉取全量。
  */
-public class FakeBleConnection(
-    public val device: DiscoveredDevice,
+class FakeBleConnection(
+    val device: DiscoveredDevice,
     private val client: FakeBleClient,
 ) : BleConnection {
 
@@ -79,8 +79,8 @@ public class FakeBleConnection(
     private val statusFlow = MutableSharedFlow<String>(extraBufferCapacity = 16)
     private val scope = CoroutineScope(Dispatchers.Default)
 
-    public var disconnected: Boolean = false
-    public var requestedMtu: Int? = null
+    var disconnected: Boolean = false
+    var requestedMtu: Int? = null
 
     init {
         scope.launch {
@@ -99,12 +99,12 @@ public class FakeBleConnection(
     }
 
     /** 测试用：模拟小车上报一次状态更新。 */
-    public fun simulateStatus(json: String) {
+    fun simulateStatus(json: String) {
         statusFlow.tryEmit(json)
     }
 
     /** 测试用：模拟异常断连。 */
-    public fun simulateDrop() {
+    fun simulateDrop() {
         stateFlow.value = ConnectionState.Disconnected
     }
 }

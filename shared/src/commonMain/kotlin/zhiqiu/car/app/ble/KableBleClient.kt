@@ -7,7 +7,6 @@ import com.juul.kable.Peripheral
 import com.juul.kable.Scanner
 import com.juul.kable.State
 import com.juul.kable.WriteType
-import com.juul.kable.characteristicOf
 import kotlinx.coroutines.flow.Flow
 import zhiqiu.car.app.platformLog
 import kotlinx.coroutines.flow.first
@@ -21,21 +20,11 @@ import kotlin.uuid.Uuid
  * 基于 Kable 的真实 [BleClient] 实现，全平台共用。
  * 扫描按名称前缀 `EspCar_` 过滤；状态读取采用"通知触发 + 主动 Read 全量"以规避 MTU 分片。
  */
-public class KableBleClient : BleClient {
+class KableBleClient : BleClient {
 
     private companion object {
-        /** 等待 GATT 服务发现完成的超时；超时后回退到 characteristicOf。 */
         const val SERVICE_DISCOVERY_TIMEOUT_MS = 5_000L
     }
-
-    private val commandCharacteristic = characteristicOf(
-        Uuid.parse(CarUuids.SERVICE),
-        Uuid.parse(CarUuids.COMMAND),
-    )
-    private val statusCharacteristic = characteristicOf(
-        Uuid.parse(CarUuids.SERVICE),
-        Uuid.parse(CarUuids.STATUS),
-    )
 
     private val advertisementsById = mutableMapOf<String, Advertisement>()
 
@@ -45,7 +34,8 @@ public class KableBleClient : BleClient {
     override fun startScan(filter: ScanFilter): Flow<DiscoveredDevice> =
         Scanner {
             filters {
-                filter.namePrefix?.let { prefix ->
+                // 空前缀 = 不过滤（扫描所有设备）
+                filter.namePrefix?.takeIf { it.isNotBlank() }?.let { prefix ->
                     match { name = Filter.Name.Prefix(prefix) }
                 }
                 filter.serviceUuid?.let { uuid ->
@@ -71,27 +61,22 @@ public class KableBleClient : BleClient {
         } catch (e: Exception) {
             throw BleException("连接失败：${e.message}", e)
         }
-        // 通知依赖真实特征对象；从已发现服务中取，取不到再回退 characteristicOf（等待发现完成，超时兜底）。
         val services = withTimeoutOrNull(SERVICE_DISCOVERY_TIMEOUT_MS) {
             peripheral.services.first { !it.isNullOrEmpty() }
-        }.orEmpty()
+        } ?: throw BleException("GATT 服务发现超时（${SERVICE_DISCOVERY_TIMEOUT_MS}ms），请重试连接")
         val discovered = services.flatMap { it.characteristics }
         platformLog("EspCar", "services discovered=${services.size} characteristics=${discovered.size}")
         val statusChar = discovered
             .firstOrNull { it.characteristicUuid == Uuid.parse(CarUuids.STATUS) }
-            ?: statusCharacteristic.also {
-                platformLog("EspCar", "WARN 未在已发现服务中找到 STATUS 特征，回退 characteristicOf（通知可能收不到）")
-            }
+            ?: throw BleException("STATUS characteristic (0x1235) not found in discovered services")
         val commandChar = discovered
             .firstOrNull { it.characteristicUuid == Uuid.parse(CarUuids.COMMAND) }
-            ?: commandCharacteristic.also {
-                platformLog("EspCar", "WARN 未在已发现服务中找到 COMMAND 特征，回退 characteristicOf")
-            }
+            ?: throw BleException("COMMAND characteristic (0x1234) not found in discovered services")
         return KableBleConnection(peripheral, commandChar, statusChar)
     }
 
     /** 清除已缓存的广播记录（例如断连后下次连接前刷新）。 */
-    public fun forgetAdvertisement(id: String) {
+    fun forgetAdvertisement(id: String) {
         advertisementsById.remove(id)
     }
 }
@@ -100,7 +85,7 @@ public class KableBleClient : BleClient {
  * 基于 Kable [Peripheral] 的连接句柄。
  * [requestMtu] 为空实现（Kable 公共接口未暴露）；分片问题靠"通知触发 + 主动 Read 全量"解决。
  */
-public class KableBleConnection(
+class KableBleConnection(
     private val peripheral: Peripheral,
     private val commandCharacteristic: Characteristic,
     private val statusCharacteristic: Characteristic,
@@ -133,7 +118,8 @@ public class KableBleConnection(
 
     override suspend fun readStatus(): String? = try {
         gattMutex.withLock { peripheral.read(statusCharacteristic).decodeToString() }
-    } catch (_: Exception) {
+    } catch (e: Exception) {
+        platformLog("EspCar", "readStatus FAIL: ${e.message}")
         null
     }
 

@@ -37,17 +37,17 @@ import zhiqiu.car.app.platformLog
 /** 进程启动基准时刻，用于看门狗计时（跨平台，不依赖 System.currentTimeMillis）。 */
 private val START_MARK = TimeSource.Monotonic.markNow()
 
-public class CarController(
+class CarController(
     private val client: BleClient,
-    private val settings: CarSettings = CarSettings(),
+     val settings: CarSettings = CarSettings(),
     dispatcher: CoroutineDispatcher = Dispatchers.Default,
     private val clock: () -> Long = { START_MARK.elapsedNow().inWholeMilliseconds },
 ) {
-    public companion object {
-        public const val KEEPALIVE_MS: Long = 500
-        public const val WATCHDOG_TIMEOUT_MS: Long = 1500
-        public const val WATCHDOG_INTERVAL_MS: Long = 200
-        public const val STATUS_POLL_MS: Long = 2000
+    companion object {
+        const val KEEPALIVE_MS: Long = 500
+        const val WATCHDOG_TIMEOUT_MS: Long = 1500
+        const val WATCHDOG_INTERVAL_MS: Long = 200
+        const val STATUS_POLL_MS: Long = 2000
         private const val AUTO_RECONNECT_TIMEOUT_MS: Long = 8000
         /** 状态读取连续失败达到该次数即触发自动重连（应对 GATT 上下文被系统清掉）。 */
         private const val STATUS_FAIL_RECONNECT_THRESHOLD: Int = 3
@@ -59,41 +59,33 @@ public class CarController(
         private const val MAX_LOG_LINES: Int = 80
     }
 
-    /** 协程内可用的 [runCatching]：其 [block] 允许包含挂起调用（标准库版本不允许）。 */
-    private suspend inline fun <R> runCatching(block: suspend () -> R): Result<R> =
-        try {
-            Result.success(block())
-        } catch (e: Throwable) {
-            Result.failure(e)
-        }
-
     private val scope = CoroutineScope(SupervisorJob() + dispatcher)
 
     private val _scanDevices = MutableStateFlow<List<DiscoveredDevice>>(emptyList())
-    public val scanDevices: StateFlow<List<DiscoveredDevice>> = _scanDevices.asStateFlow()
+    val scanDevices: StateFlow<List<DiscoveredDevice>> = _scanDevices.asStateFlow()
 
     private val _isScanning = MutableStateFlow(false)
-    public val isScanning: StateFlow<Boolean> = _isScanning.asStateFlow()
+    val isScanning: StateFlow<Boolean> = _isScanning.asStateFlow()
 
     private val _connectionState = MutableStateFlow(ConnectionState.Disconnected)
-    public val connectionState: StateFlow<ConnectionState> = _connectionState.asStateFlow()
+    val connectionState: StateFlow<ConnectionState> = _connectionState.asStateFlow()
 
     private val _status = MutableStateFlow<CarStatus?>(null)
-    public val status: StateFlow<CarStatus?> = _status.asStateFlow()
+    val status: StateFlow<CarStatus?> = _status.asStateFlow()
 
     /** 状态读取/解析失败提示；为 null 表示正常。用于 UI 区分"正在获取"与"读取失败"。 */
     private val _statusError = MutableStateFlow<String?>(null)
-    public val statusError: StateFlow<String?> = _statusError.asStateFlow()
+    val statusError: StateFlow<String?> = _statusError.asStateFlow()
 
     /** 分片状态缓冲：小车按 MTU 分片推送状态，逐片累积成完整 JSON 再解析。 */
     private val statusBuf = StringBuilder()
 
     private val _error = MutableStateFlow<String?>(null)
-    public val error: StateFlow<String?> = _error.asStateFlow()
+    val error: StateFlow<String?> = _error.asStateFlow()
 
     /** 调试日志（最近 N 条），既打到 logcat（[EspCar] 标签），也供 UI 界面显示。 */
     private val _logLines = MutableStateFlow<List<String>>(emptyList())
-    public val logLines: StateFlow<List<String>> = _logLines.asStateFlow()
+    val logLines: StateFlow<List<String>> = _logLines.asStateFlow()
     private fun log(msg: String) {
         val line = "[${clock()}] $msg"
         platformLog("EspCar", line)
@@ -102,10 +94,10 @@ public class CarController(
     }
 
     private val _currentDirection = MutableStateFlow<CarDirection?>(null)
-    public val currentDirection: StateFlow<CarDirection?> = _currentDirection.asStateFlow()
+    val currentDirection: StateFlow<CarDirection?> = _currentDirection.asStateFlow()
 
-    public val isSupported: Boolean get() = client.isSupported
-    public val discoveryMode: DiscoveryMode get() = client.discoveryMode
+    val isSupported: Boolean get() = client.isSupported
+    val discoveryMode: DiscoveryMode get() = client.discoveryMode
 
     private var connection: BleConnection? = null
     private var scanJob: Job? = null
@@ -123,10 +115,11 @@ public class CarController(
      * 开始扫描。`timeoutMs` 非空时，扫描到时自动停止以节省电量；
      * 传 null 则不自动停（用于内部自动重连场景，由调用方自行控制停止时机）。
      */
-    public fun startScan(timeoutMs: Long? = null) {
+    fun startScan(timeoutMs: Long? = null) {
         if (_isScanning.value) return
         scanJob?.cancel()
         scanJob = scope.launch {
+            _error.value = null
             _isScanning.value = true
             _scanDevices.value = emptyList()
             val timeoutJob = if (timeoutMs != null && timeoutMs > 0) {
@@ -137,7 +130,9 @@ public class CarController(
                 }
             } else null
             runCatching {
-                client.startScan().collect { device ->
+                client.startScan(ScanFilter.NamePrefix(settings.scanNamePrefix)).collect { device ->
+                    // 过滤无名字设备（开启时，设备名为 null 直接跳过）
+                    if (settings.filterNamelessEnabled && device.name == null) return@collect
                     val list = _scanDevices.value.toMutableList()
                     val idx = list.indexOfFirst { it.id == device.id }
                     if (idx >= 0) list[idx] = device else list.add(device)
@@ -155,7 +150,7 @@ public class CarController(
         }
     }
 
-    public fun stopScan() {
+    fun stopScan() {
         scanJob?.cancel()
         scanJob = null
         _isScanning.value = false
@@ -164,11 +159,11 @@ public class CarController(
 
     // region 连接
     /** 非挂起入口：供 UI 点击事件调用，协程运行在 controller 自身 scope，不随组合销毁被取消。 */
-    public fun connectDevice(device: DiscoveredDevice) {
+    fun connectDevice(device: DiscoveredDevice) {
         scope.launch { connect(device) }
     }
 
-    public suspend fun connect(device: DiscoveredDevice) {
+    suspend fun connect(device: DiscoveredDevice) {
         stopScan()
         _error.value = null
         _connectionState.value = ConnectionState.Connecting
@@ -209,7 +204,7 @@ public class CarController(
         }
     }
 
-    public suspend fun disconnect() {
+    suspend fun disconnect() {
         stopScan()
         releaseDirectionInternal()
         val conn = connection
@@ -224,7 +219,7 @@ public class CarController(
     }
 
     /** 进程/页面退出前尽力让车停下。 */
-    public suspend fun emergencyStop() {
+    suspend fun emergencyStop() {
         releaseDirectionInternal()
         val conn = connection
         if (conn != null) {
@@ -233,14 +228,14 @@ public class CarController(
         }
     }
 
-    public fun clearError() {
+    fun clearError() {
         _error.value = null
     }
     // endregion
 
     // region 控制
     /** 按下某方向：立即发送一次，并启动保活重发。 */
-    public fun pressDirection(direction: CarDirection) {
+    fun pressDirection(direction: CarDirection) {
         _currentDirection.value = direction
         markCommand(CarCommands.directionChar(direction))
         scope.launch { sendCommand(lastCommandChar.load()) }
@@ -248,12 +243,12 @@ public class CarController(
     }
 
     /** 松开：停止并取消保活。 */
-    public fun releaseDirection() {
+    fun releaseDirection() {
         releaseDirectionInternal()
     }
 
     /** 设置速度（0-100 百分比）。 */
-    public fun setSpeed(percent: Int) {
+    fun setSpeed(percent: Int) {
         scope.launch { sendCommand(CarCommands.speedDigit(percent)) }
     }
 
@@ -286,7 +281,7 @@ public class CarController(
     private suspend fun refreshStatus(conn: BleConnection): Boolean {
         val json = conn.readStatus()
         if (json == null) {
-            log("refreshStatus: read=null（特征可能不支持 Read，或 GATT 上下文已失效）")
+            log("refreshStatus: read=null, characteristic may not support Read or GATT context lost")
             _statusError.value = "状态读取失败：小车未返回数据（可能蓝牙连接已失效）"
             return false
         }
@@ -440,7 +435,7 @@ public class CarController(
     }
 
     /** 自动重连上次设备：扫描并在超时内匹配到 remembered id 即连接。 */
-    public suspend fun autoReconnectIfNeeded() {
+    suspend fun autoReconnectIfNeeded() {
         if (!settings.autoReconnect) return
         val id = settings.lastDeviceId ?: return
         scanUntilFound(id, AUTO_RECONNECT_TIMEOUT_MS)?.let { connect(it) }
@@ -472,7 +467,7 @@ public class CarController(
      * 但若在非 App 级场景复用，或在平台入口（如 Android `Activity.onDestroy`）需要确定性释放时，
      * 可显式调用本方法。
      */
-    public fun close() {
+    fun close() {
         scope.cancel()
     }
 
