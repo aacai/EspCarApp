@@ -40,6 +40,7 @@ import androidx.compose.runtime.setValue
 import cafe.adriel.voyager.core.model.rememberScreenModel
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -80,6 +81,7 @@ class SettingsScreen(
     override fun Content() {
         val navigator = LocalNavigator.currentOrThrow
         val viewModel = rememberScreenModel { SettingsScreenModel(settings) }
+        val keyboardController = LocalSoftwareKeyboardController.current
 
         // 统一返回键监听：安卓系统返回键 / 桌面 Esc / 其它平台由导航栈处理。
         // 设置页是栈内页面，优先 pop 回上一页（扫描/控制页），而不是直接退出 App。
@@ -152,7 +154,10 @@ class SettingsScreen(
                         }
                         Spacer(Modifier.width(8.dp))
                         Button(
-                            onClick = { viewModel.savePrefix() },
+                            onClick = {
+                                viewModel.savePrefix()
+                                keyboardController?.hide()
+                            },
                             enabled = viewModel.prefixDirty,
                         ) {
                             Text(stringResource(Res.string.settings_save))
