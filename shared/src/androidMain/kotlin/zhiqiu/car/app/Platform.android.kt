@@ -1,6 +1,7 @@
 package zhiqiu.car.app
 
 import android.content.Intent
+import android.net.Uri
 import android.os.Build
 import android.provider.Settings
 import android.util.Log
@@ -18,6 +19,13 @@ internal actual fun platformLog(tag: String, message: String) {
 actual fun openBluetoothSettings() {
     val ctx = zhiqiu.car.app.ble.appContext ?: return
     val intent = Intent(Settings.ACTION_BLUETOOTH_SETTINGS)
+    intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+    ctx.startActivity(intent)
+}
+
+actual fun openUrl(url: String) {
+    val ctx = zhiqiu.car.app.ble.appContext ?: return
+    val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
     intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
     ctx.startActivity(intent)
 }

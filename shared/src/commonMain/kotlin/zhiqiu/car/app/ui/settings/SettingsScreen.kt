@@ -16,6 +16,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.rounded.ArrowForwardIos
+import androidx.compose.material.icons.rounded.Info
 import androidx.compose.material.icons.rounded.Palette
 import androidx.compose.material.icons.rounded.Translate
 import androidx.compose.material3.AlertDialog
@@ -69,6 +70,8 @@ import espcarclient.shared.generated.resources.lang_en
 import espcarclient.shared.generated.resources.settings_save
 import espcarclient.shared.generated.resources.settings_reset_default
 import espcarclient.shared.generated.resources.settings_done
+import espcarclient.shared.generated.resources.settings_group_about
+import espcarclient.shared.generated.resources.settings_about_label
 import org.jetbrains.compose.resources.stringResource
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -247,6 +250,36 @@ class SettingsScreen(
                     modifier = Modifier.clickable { viewModel.openLanguageDialog() },
                 )
             }
+
+            // ---- 关于 ----
+            item {
+                Text(
+                    text = stringResource(Res.string.settings_group_about),
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 24.dp, bottom = 4.dp),
+                )
+            }
+            item {
+                ListItem(
+                    headlineContent = {
+                        Text(stringResource(Res.string.settings_about_label))
+                    },
+                    leadingContent = {
+                        Icon(Icons.Rounded.Info, contentDescription = null)
+                    },
+                    trailingContent = {
+                        Icon(
+                            Icons.Rounded.ArrowForwardIos,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    },
+                    colors = ListItemDefaults.colors(),
+                    modifier = Modifier.clickable { viewModel.openAboutDialog() },
+                )
+            }
         }
     }
 
@@ -299,6 +332,10 @@ class SettingsScreen(
                 },
             )
         }
+    }
+
+    if (viewModel.showAboutDialog.value) {
+        AboutDialog(onDismiss = { viewModel.dismissAboutDialog() })
     }
     }
 }

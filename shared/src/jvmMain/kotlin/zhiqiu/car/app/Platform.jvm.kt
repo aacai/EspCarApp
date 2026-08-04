@@ -13,3 +13,20 @@ internal actual fun platformLog(tag: String, message: String) {
 actual fun openBluetoothSettings() {
     // JVM 桌面平台无蓝牙设置
 }
+
+actual fun openUrl(url: String) {
+    try {
+        val desktop = java.awt.Desktop.getDesktop()
+        if (desktop.isSupported(java.awt.Desktop.Action.BROWSE)) {
+            desktop.browse(java.net.URI(url))
+            return
+        }
+    } catch (_: Exception) {
+        // 忽略，尝试兜底
+    }
+    try {
+        Runtime.getRuntime().exec(arrayOf("rundll32", "url.dll,FileProtocolHandler", url))
+    } catch (_: Exception) {
+        // Windows 兜底也失败时静默
+    }
+}

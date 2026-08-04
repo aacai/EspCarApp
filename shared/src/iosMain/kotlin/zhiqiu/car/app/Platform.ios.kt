@@ -1,5 +1,7 @@
 package zhiqiu.car.app
 
+import platform.Foundation.NSURL
+import platform.UIKit.UIApplication
 import platform.UIKit.UIDevice
 
 class IOSPlatform: Platform {
@@ -14,4 +16,9 @@ internal actual fun platformLog(tag: String, message: String) {
 
 actual fun openBluetoothSettings() {
     // iOS 通过系统设置开启蓝牙，无法直接跳转
+}
+
+actual fun openUrl(url: String) {
+    val nsUrl = NSURL.URLWithString(url) ?: return
+    UIApplication.sharedApplication.openURL(nsUrl, options = emptyMap<Any?, Any>(), completionHandler = null)
 }

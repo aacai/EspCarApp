@@ -32,6 +32,9 @@ class SettingsScreenModel(
     private val _showLanguageDialog = mutableStateOf(false)
     val showLanguageDialog: State<Boolean> = _showLanguageDialog
 
+    private val _showAboutDialog = mutableStateOf(false)
+    val showAboutDialog: State<Boolean> = _showAboutDialog
+
     /** 输入是否与持久化值不同（用于启用"保存"按钮）。 */
     val prefixDirty: Boolean
         get() = _prefixInput.value.trim() != settings.scanNamePrefix.value.trim()
@@ -78,5 +81,13 @@ class SettingsScreenModel(
 
     fun dismissLanguageDialog() {
         _showLanguageDialog.value = false
+    }
+
+    fun openAboutDialog() {
+        _showAboutDialog.value = true
+    }
+
+    fun dismissAboutDialog() {
+        _showAboutDialog.value = false
     }
 }

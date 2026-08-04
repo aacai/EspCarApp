@@ -60,4 +60,12 @@
     <string name="settings_save">Save</string>
     <string name="settings_reset_default">Reset</string>
     <string name="settings_done">Done</string>
+
+    <string name="settings_group_about">About</string>
+    <string name="settings_about_label">About</string>
+    <string name="about_subtitle">ESP32-C3 Smart Car Remote Control</string>
+    <string name="about_version">Version %1$s</string>
+    <string name="about_description">A cross-platform remote control for the ESP32-C3 smart car, built with Kotlin Multiplatform and Compose Multiplatform. It features BLE direct connection, directional driving, real-time status monitoring, and more.</string>
+    <string name="about_links_title">Source Code</string>
+    <string name="about_license">Open Source · MIT License</string>
 </resources>
