@@ -6,6 +6,9 @@ desktopApp/bin/
 xcuserdata
 !src/**/build/
 local.properties
+androidApp/signing.properties
+*.jks
+*.keystore
 .idea
 .DS_Store
 captures
