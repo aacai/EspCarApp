@@ -45,6 +45,8 @@ android {
     val keyPassword = prop("keyPassword", "KEY_PASSWORD")
 
     signingConfigs {
+        // 统一签名：debug 与 release 均使用正式签名（key.jks）
+        // 签名信息缺失时（如 CI 未配 Secrets），降级为系统默认 debug 签名，保证构建不中断。
         create("release") {
             if (storeFilePath != null && storePassword != null && keyAlias != null && keyPassword != null) {
                 storeFile = file(storeFilePath)
@@ -52,7 +54,6 @@ android {
                 this.keyAlias = keyAlias
                 this.keyPassword = keyPassword
             } else {
-                // 未配置签名信息：复用 debug 签名（CI 未设 Secrets 时也能跑通）
                 initWith(getByName("debug"))
             }
         }
@@ -71,6 +72,10 @@ android {
         }
     }
     buildTypes {
+        debug {
+            // debug 与 release 统一使用正式签名
+            signingConfig = signingConfigs.getByName("release")
+        }
         release {
             isMinifyEnabled = true
             isShrinkResources = true
