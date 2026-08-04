@@ -38,6 +38,7 @@ import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import cafe.adriel.voyager.core.model.rememberScreenModel
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -185,8 +186,9 @@ class SettingsScreen(
                         Text(stringResource(Res.string.settings_filter_nameless_desc))
                     },
                     trailingContent = {
+                        val filterNameless by settings.filterNamelessEnabled.collectAsStateWithLifecycle()
                         Switch(
-                            checked = viewModel.filterNamelessEnabled,
+                            checked = filterNameless,
                             onCheckedChange = { settings.setFilterNamelessEnabled(it) },
                         )
                     },
