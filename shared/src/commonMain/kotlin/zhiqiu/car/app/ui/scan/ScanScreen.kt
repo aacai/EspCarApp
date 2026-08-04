@@ -27,6 +27,8 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
@@ -37,6 +39,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -52,6 +55,7 @@ import zhiqiu.car.app.ble.CarController
 import zhiqiu.car.app.ble.ConnectionState
 import zhiqiu.car.app.ble.DiscoveredDevice
 import zhiqiu.car.app.openBluetoothSettings
+import zhiqiu.car.app.PlatformBackHandler
 import zhiqiu.car.app.SettingsRepository
 import zhiqiu.car.app.ui.control.ControlScreen
 import zhiqiu.car.app.ui.settings.SettingsScreen
@@ -65,6 +69,7 @@ import zhiqiu.car.app.ui.theme.HeroGradient
 import zhiqiu.car.app.ui.theme.SakuraDeep
 import zhiqiu.car.app.ui.theme.SakuraPink
 import espcarclient.shared.generated.resources.*
+import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.stringResource
 
 /**
@@ -92,6 +97,26 @@ class ScanScreen(
         var connectingDeviceId by remember { mutableStateOf<String?>(null) }
         // 防止回到扫描页后（仍保持连接）再次自动跳进控制页造成死循环。
         var navigatedToControl by remember { mutableStateOf(false) }
+
+        // 双击返回退出：第一次按返回仅提示「再按一次退出」，Snackbar 展示期间再按一次才真正退出；
+        // Snackbar 消失（showSnackbar 返回）后重置标志，避免误触直接退出。
+        val scope = rememberCoroutineScope()
+        val snackbarHostState = remember { SnackbarHostState() }
+        val exitPressAgainMessage = stringResource(Res.string.exit_press_again)
+        var backPressedOnce by remember { mutableStateOf(false) }
+
+        PlatformBackHandler(enabled = true) {
+            if (backPressedOnce) {
+                controller.stopScan()
+                navigator.pop()
+            } else {
+                backPressedOnce = true
+                scope.launch {
+                    snackbarHostState.showSnackbar(exitPressAgainMessage)
+                    backPressedOnce = false
+                }
+            }
+        }
 
         // 连接成功后进入控制页。用 push 保留扫描页在栈底，使系统返回键能回到扫描页；
         // navigatedToControl 标志保证 pop 回扫描页后不会重复跳转。
@@ -147,6 +172,7 @@ class ScanScreen(
                     )
                 }
             },
+            snackbarHost = { SnackbarHost(snackbarHostState) },
         ) { padding ->
             Column(
                 modifier = Modifier

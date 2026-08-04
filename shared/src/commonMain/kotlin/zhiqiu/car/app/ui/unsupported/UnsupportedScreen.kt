@@ -25,6 +25,9 @@ import androidx.compose.material.icons.rounded.BluetoothDisabled
 import androidx.compose.material3.Icon
 import cafe.adriel.voyager.core.screen.Screen
 import cafe.adriel.voyager.core.screen.uniqueScreenKey
+import cafe.adriel.voyager.navigator.LocalNavigator
+import cafe.adriel.voyager.navigator.currentOrThrow
+import zhiqiu.car.app.PlatformBackHandler
 import zhiqiu.car.app.ui.theme.HeroGradient
 import espcarclient.shared.generated.resources.*
 import org.jetbrains.compose.resources.stringResource
@@ -39,6 +42,11 @@ class UnsupportedScreen(
 
     @Composable
     override fun Content() {
+        val navigator = LocalNavigator.currentOrThrow
+
+        // 蓝牙不可用页也是导航栈根页：返回键直接退出 App。
+        PlatformBackHandler(enabled = true) { navigator.pop() }
+
         Scaffold { padding ->
             Column(
                 modifier = Modifier

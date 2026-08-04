@@ -2,15 +2,18 @@ package zhiqiu.car.app.ui.control
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -41,6 +44,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import cafe.adriel.voyager.core.screen.Screen
@@ -49,6 +53,7 @@ import cafe.adriel.voyager.navigator.LocalNavigator
 import cafe.adriel.voyager.navigator.currentOrThrow
 import kotlinx.coroutines.launch
 import zhiqiu.car.app.ble.CarController
+import zhiqiu.car.app.ble.CarDirection
 import zhiqiu.car.app.ble.ConnectionState
 import zhiqiu.car.app.PlatformBackHandler
 import zhiqiu.car.app.SettingsRepository
@@ -56,6 +61,7 @@ import zhiqiu.car.app.ui.scan.ScanScreen
 import zhiqiu.car.app.ui.settings.SettingsScreen
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.rounded.Build
 import androidx.compose.material.icons.rounded.DirectionsCar
 import androidx.compose.material.icons.rounded.Settings
 import androidx.compose.material3.Icon
@@ -158,109 +164,174 @@ class ControlScreen(
             }
         },
     ) { padding ->
-        Column(
+        LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(padding)
-                .padding(16.dp),
+                .padding(padding),
+            contentPadding = PaddingValues(16.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
             if (error != null) {
-                Card(
+                item {
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(16.dp),
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.error.copy(alpha = 0.12f)),
+                    ) {
+                        Text(
+                            text = error ?: "",
+                            modifier = Modifier.padding(14.dp),
+                            color = MaterialTheme.colorScheme.error,
+                            style = MaterialTheme.typography.bodyMedium,
+                        )
+                    }
+                }
+            }
+
+            item {
+                DirectionalPad(
+                    current = currentDirection,
+                    onPress = { controller.pressDirection(it) },
+                    onRelease = { controller.releaseDirection() },
+                )
+            }
+
+            item {
+                SpeedCard(
+                    speed = speed,
+                    onSpeedChange = {
+                        speed = it
+                        controller.setSpeed(it)
+                    },
+                )
+            }
+
+            item {
+                Button(
+                    onClick = { scope.launch { controller.emergencyStop() } },
                     modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(16.dp),
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.error.copy(alpha = 0.12f)),
+                    shape = RoundedCornerShape(14.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.error,
+                        contentColor = MaterialTheme.colorScheme.onError,
+                    ),
                 ) {
                     Text(
-                        text = error ?: "",
-                        modifier = Modifier.padding(14.dp),
-                        color = MaterialTheme.colorScheme.error,
+                        stringResource(Res.string.emergency_stop),
+                        modifier = Modifier.padding(vertical = 6.dp),
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.SemiBold,
+                    )
+                }
+            }
+
+            if (status != null) {
+                item {
+                    StatusPanel(status = status!!)
+                }
+                if (statusError != null) {
+                    item {
+                        Text(
+                            statusError!!,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(top = 8.dp),
+                            color = AccentAmber,
+                            style = MaterialTheme.typography.labelSmall,
+                        )
+                    }
+                }
+            } else {
+                item {
+                    Text(
+                        statusError ?: stringResource(Res.string.fetching_status),
+                        color = if (statusError != null) AccentAmber else MaterialTheme.colorScheme.onSurfaceVariant,
                         style = MaterialTheme.typography.bodyMedium,
                     )
                 }
             }
 
-            DirectionalPad(
-                current = currentDirection,
-                onPress = { controller.pressDirection(it) },
-                onRelease = { controller.releaseDirection() },
-            )
+            if (showLog) {
+                item {
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(12.dp),
+                        colors = CardDefaults.cardColors(containerColor = Color.Black.copy(alpha = 0.85f)),
+                    ) {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(180.dp)
+                                .verticalScroll(rememberScrollState())
+                                .padding(10.dp),
+                        ) {
+                            Text(
+                                stringResource(Res.string.debug_log_title),
+                                color = AccentCyan,
+                                style = MaterialTheme.typography.labelSmall,
+                            )
+                            val text = if (logLines.isEmpty()) stringResource(Res.string.no_log) else logLines.joinToString("\n")
+                            Text(
+                                text = text,
+                                color = Color(0xFF9EFFA0),
+                                style = MaterialTheme.typography.labelSmall,
+                            )
+                        }
+                    }
+                }
+            }
 
-            SpeedCard(
-                speed = speed,
-                onSpeedChange = {
-                    speed = it
-                    controller.setSpeed(it)
-                },
-            )
+            // 底部调试按钮：按住整车前进（四轮同转）测试电机，松开即停。
+            item {
+                WheelTestButton(
+                    onPress = { controller.pressDirection(CarDirection.Forward) },
+                    onRelease = { controller.releaseDirection() },
+                )
+            }
+        }
+    }
+}
 
-            Button(
-                onClick = { scope.launch { controller.emergencyStop() } },
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(14.dp),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = MaterialTheme.colorScheme.error,
-                    contentColor = MaterialTheme.colorScheme.onError,
-                ),
-            ) {
+/** 四轮同转测试按钮：按住整车前进（发 F，四轮同转），松开自动停车（发 S）。 */
+@Composable
+private fun WheelTestButton(
+    onPress: () -> Unit,
+    onRelease: () -> Unit,
+) {
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(14.dp))
+            .background(AccentCyan)
+            .pointerInput(Unit) {
+                detectTapGestures(onPress = {
+                    onPress()
+                    awaitRelease()
+                    onRelease()
+                })
+            }
+            .padding(vertical = 16.dp),
+        contentAlignment = Alignment.Center,
+    ) {
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(Icons.Rounded.Build, null, tint = Color.White)
                 Text(
-                    stringResource(Res.string.emergency_stop),
-                    modifier = Modifier.padding(vertical = 6.dp),
+                    stringResource(Res.string.control_wheel_test),
+                    modifier = Modifier.padding(start = 8.dp),
+                    color = Color.White,
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.SemiBold,
                 )
             }
-
-            if (status != null) {
-                StatusPanel(status = status!!)
-                if (statusError != null) {
-                    Text(
-                        statusError!!,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(top = 8.dp),
-                        color = AccentAmber,
-                        style = MaterialTheme.typography.labelSmall,
-                    )
-                }
-            } else {
-                Text(
-                    statusError ?: stringResource(Res.string.fetching_status),
-                    color = if (statusError != null) AccentAmber else MaterialTheme.colorScheme.onSurfaceVariant,
-                    style = MaterialTheme.typography.bodyMedium,
-                )
-            }
-
-            if (showLog) {
-                Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(12.dp),
-                    colors = CardDefaults.cardColors(containerColor = Color.Black.copy(alpha = 0.85f)),
-                ) {
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(180.dp)
-                            .verticalScroll(rememberScrollState())
-                            .padding(10.dp),
-                    ) {
-                        Text(
-                            stringResource(Res.string.debug_log_title),
-                            color = AccentCyan,
-                            style = MaterialTheme.typography.labelSmall,
-                        )
-                        val text = if (logLines.isEmpty()) stringResource(Res.string.no_log) else logLines.joinToString("\n")
-                        Text(
-                            text = text,
-                            color = Color(0xFF9EFFA0),
-                            style = MaterialTheme.typography.labelSmall,
-                        )
-                    }
-                }
-            }
+            Text(
+                stringResource(Res.string.control_wheel_test_hint),
+                modifier = Modifier.padding(top = 4.dp),
+                color = Color.White.copy(alpha = 0.85f),
+                style = MaterialTheme.typography.labelMedium,
+            )
         }
-    }
     }
 }
 
@@ -346,4 +417,5 @@ private fun SpeedCard(speed: Int, onSpeedChange: (Int) -> Unit) {
             }
         }
     }
+}
 }

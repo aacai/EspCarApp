@@ -86,9 +86,16 @@ class SettingsScreen(
         val viewModel = rememberScreenModel { SettingsScreenModel(settings) }
         val keyboardController = LocalSoftwareKeyboardController.current
 
+        // 若有对话框（主题/语言/关于）打开，返回键应由对话框自身的 onDismissRequest 处理，
+        // 此时停用本页 BackHandler，避免父级拦截与对话框返回抢占，导致直接退出。
+        val anyDialogOpen =
+            viewModel.showThemeDialog.value ||
+            viewModel.showLanguageDialog.value ||
+            viewModel.showAboutDialog.value
+
         // 统一返回键监听：安卓系统返回键 / 桌面 Esc / 其它平台由导航栈处理。
         // 设置页是栈内页面，优先 pop 回上一页（扫描/控制页），而不是直接退出 App。
-        PlatformBackHandler(enabled = true) { navigator.pop() }
+        PlatformBackHandler(enabled = !anyDialogOpen) { navigator.pop() }
 
     Scaffold(
         topBar = {
