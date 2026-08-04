@@ -1,4 +1,5 @@
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+import java.util.Properties
 
 plugins {
     alias(libs.plugins.androidApplication)
@@ -28,9 +29,10 @@ android {
     // 签名来源优先级：环境变量（CI: GitHub Actions Secrets）> 本地 signing.properties（仅本地，不进 git）
     // 未配置任何签名时，release 退化为使用 debug 签名，保证流水线不崩。
     val signingPropsFile = rootProject.file("androidApp/signing.properties")
-    val signingProps = java.util.Properties().apply {
-        if (signingPropsFile.exists()) {
-            signingPropsFile.inputStream().use { load(it) }
+    val signingProps = Properties()
+    if (signingPropsFile.exists()) {
+        signingPropsFile.inputStream().use { stream ->
+            signingProps.load(stream)
         }
     }
 
