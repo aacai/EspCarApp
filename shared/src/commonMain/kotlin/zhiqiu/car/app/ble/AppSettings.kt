@@ -1,7 +1,7 @@
 package zhiqiu.car.app.ble
 
 /** 持久化偏好：记住上次连接设备、看门狗开关、自动重连开关。 */
-class CarSettings(private val store: KeyValueStore = createKeyValueStore()) {
+class AppSettings(private val store: KeyValueStore = createKeyValueStore()) {
 
     var lastDeviceId: String?
         get() = store.getString(KEY_LAST_ID)

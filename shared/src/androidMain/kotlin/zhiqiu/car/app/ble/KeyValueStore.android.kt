@@ -12,7 +12,7 @@ fun setAndroidContext(context: Context) {
 
 internal actual fun createKeyValueStore(): KeyValueStore {
     val ctx = appContext
-        ?: error("Android Context 未初始化：请在使用 CarSettings 前调用 setAndroidContext()")
+        ?: error("Android Context 未初始化：请在使用 AppSettings 前调用 setAndroidContext()")
     val prefs: SharedPreferences = ctx.getSharedPreferences("esp_car_prefs", Context.MODE_PRIVATE)
     return object : KeyValueStore {
         override fun getString(key: String): String? = prefs.getString(key, null)

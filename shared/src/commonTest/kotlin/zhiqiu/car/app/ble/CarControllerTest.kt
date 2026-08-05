@@ -32,7 +32,7 @@ class CarControllerTest {
     private fun controller(
         dispatcher: TestDispatcher,
         client: BleClient = FakeBleClient(),
-        settings: CarSettings = CarSettings(InMemoryKeyValueStore()),
+        settings: AppSettings = AppSettings(InMemoryKeyValueStore()),
         clock: (() -> Long)? = null,
     ): Pair<CarController, FakeBleClient> {
         val c = if (clock != null) {
@@ -115,7 +115,7 @@ class CarControllerTest {
     @Test
     fun autoReconnectConnectsToRememberedDevice() = runTest {
         val client = FakeBleClient()
-        val settings = CarSettings(InMemoryKeyValueStore())
+        val settings = AppSettings(InMemoryKeyValueStore())
         val (first, _) = controller(StandardTestDispatcher(testScheduler), client, settings)
         first.connect(client.devices.first())
         runCurrent()

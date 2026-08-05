@@ -39,7 +39,7 @@ private val START_MARK = TimeSource.Monotonic.markNow()
 
 class CarController(
     private val client: BleClient,
-     val settings: CarSettings = CarSettings(),
+     val settings: AppSettings = AppSettings(),
     dispatcher: CoroutineDispatcher = Dispatchers.Default,
     private val clock: () -> Long = { START_MARK.elapsedNow().inWholeMilliseconds },
 ) {

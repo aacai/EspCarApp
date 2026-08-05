@@ -10,6 +10,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
@@ -138,7 +139,7 @@ fun GradientButton(
             modifier = Modifier.padding(horizontal = 24.dp, vertical = 13.dp),
             contentAlignment = Alignment.Center,
         ) {
-            androidx.compose.material3.Text(
+            Text(
                 text = text,
                 color = if (enabled) MaterialTheme.colorScheme.onPrimary else Color(0xFF948B8E),
                 style = MaterialTheme.typography.labelLarge,

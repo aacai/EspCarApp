@@ -22,6 +22,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -388,7 +389,7 @@ private fun SpeedCard(speed: Int, onSpeedChange: (Int) -> Unit) {
                 modifier = Modifier.size(64.dp),
                 contentAlignment = Alignment.Center,
             ) {
-                androidx.compose.material3.CircularProgressIndicator(
+                CircularProgressIndicator(
                     progress = { speed / 100f },
                     modifier = Modifier.size(64.dp),
                     color = SakuraDeep,

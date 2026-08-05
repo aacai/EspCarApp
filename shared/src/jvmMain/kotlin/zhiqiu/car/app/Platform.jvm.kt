@@ -1,5 +1,8 @@
 package zhiqiu.car.app
 
+import java.awt.Desktop
+import java.net.URI
+
 class JVMPlatform: Platform {
     override val name: String = "Java ${System.getProperty("java.version")}"
 }
@@ -16,9 +19,9 @@ actual fun openBluetoothSettings() {
 
 actual fun openUrl(url: String) {
     try {
-        val desktop = java.awt.Desktop.getDesktop()
-        if (desktop.isSupported(java.awt.Desktop.Action.BROWSE)) {
-            desktop.browse(java.net.URI(url))
+        val desktop = Desktop.getDesktop()
+        if (desktop.isSupported(Desktop.Action.BROWSE)) {
+            desktop.browse(URI(url))
             return
         }
     } catch (_: Exception) {
